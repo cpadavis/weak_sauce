@@ -299,8 +299,8 @@ if __name__ == '__main__':
     # indexing, while the code assumes x ordering.
     xnum = 20
     ynum = 25
-    xmax = 50
-    ymax = 70
+    xmax = 20
+    ymax = 25
     # x, y = np.meshgrid(np.linspace(0, xmax, xnum, endpoint=True),
     #                    np.linspace(0, np.sqrt(ymax), ynum, endpoint=True) ** 2)
     x, y = np.meshgrid(np.linspace(0, xmax, xnum, endpoint=True),
