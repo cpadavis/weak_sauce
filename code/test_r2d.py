@@ -1,11 +1,15 @@
 import numpy as np
 import ctypes
-
+from subprocess import check_output
 """
 TODO: Loop over all pixels. Deposit correctly.
 TODO: Make into pythonic class so that we can ignore all this stuff.
 """
-r2d = ctypes.CDLL('/Users/cpd/Projects/weak_sauce/code/r3d/r2d_lib.so')
+
+#kludge-ily make code portable
+basedir_name = check_output(["git", "rev-parse", "--show-toplevel"])
+r2d_libpath = basedir_name[:-1]+'/code/r3d/r2d_lib.so' #cut newline char
+r2d = ctypes.CDLL(r2d_libpath)
 
 # define some types
 r2d_int = ctypes.c_int
