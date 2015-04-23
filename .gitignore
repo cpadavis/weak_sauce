@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 
+#temp files
+*.py~
+notebooks/.ipynb_checkpoints
+
 # junk
 core.*
 
