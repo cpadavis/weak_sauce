@@ -73,9 +73,9 @@ def get_box_index_bounds(vertices):
     return xmin, ymin, xmax, ymax
 
 
-def overlap_pixel(vertices):
+def overlap_pixel(vertices, dest_window):
     # get the overlap deposits of a bounding box around the vertices
-    dest_window = np.ceil(np.max(vertices, axis=0)).astype(int).tolist()
+    #dest_window = np.ceil(np.max(vertices, axis=0)).astype(int).tolist()
 
     dest_window_c = r2d_rvec2(*dest_window)
     info = r2d.r2d_init(np.prod(dest_window))
@@ -135,20 +135,38 @@ def deposit(source_array, vertices):
 
     for i in xrange(Nx):
         for j in xrange(Ny):
-            #print(i, j)
+
             vertices_ij = np.array([[x[i, j], y[i, j]],
-                                    [x[i, j + 1], y[i, j + 1]],
-                                    [x[i + 1, j + 1], y[i + 1, j + 1]],
                                     [x[i + 1, j], y[i + 1, j]],
+                                    [x[i + 1, j + 1], y[i + 1, j + 1]],
+                                    [x[i, j + 1], y[i, j + 1]],
                                     ])
 
             vertices_ij_floored = vertices_ij - np.floor(np.min(vertices_ij,
                                                                 axis=0))
             xmin, ymin, xmax, ymax = get_box_index_bounds(vertices_ij)
-            source_ij = source_array[ymin:ymax + 1, xmin:xmax + 1]
-            overlap_ij = overlap_pixel(vertices_ij_floored).T
-            # if j == 1:
-            #     import ipdb; ipdb.set_trace()
+            if xmin < 0:
+                xmin = 0
+            if ymin < 0:
+                ymin = 0
+            if xmax >= source_array.shape[0]:
+                xmax = source_array.shape[0] - 1
+            if ymax >= source_array.shape[1]:
+                ymax = source_array.shape[1] - 1
+            source_ij = source_array[xmin:xmax + 1, ymin:ymax + 1]
+            dest_window = [xmax-xmin + 1, ymax-ymin + 1]
+            overlap_ij = overlap_pixel(vertices_ij_floored, dest_window)
+            # if j == 6:
+            #     # import ipdb; ipdb.set_trace()
+            if np.any(np.array(overlap_ij.shape) != np.array(source_ij.shape)):
+                print(i, j)
+                print(overlap_ij)
+                print(source_ij)
+                print(vertices_ij_floored)
+                print(vertices_ij)
+                print(xmin, ymin, xmax, ymax)
+                print(vertices.shape, source_array.shape)
+                print(overlap_ij.shape, source_ij.shape)
             fluxes[i, j] += np.sum(overlap_ij * source_ij)
 
     return fluxes

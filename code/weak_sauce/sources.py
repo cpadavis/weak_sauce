@@ -5,7 +5,7 @@ Nearly all of these should use the deposit grid method (to be incorporated in he
 
 self.fluxes = self.source(self.vertices, self.fluxes, **kwargs)
 
-
+TODO: Add method for adding sources
 """
 
 import numpy as np
@@ -14,9 +14,12 @@ import matplotlib.pyplot as plt
 from weak_sauce.shifted_cmap import shiftedColorMap
 from weak_sauce.adaptive_moments.psf_evaluator import Moment_Evaluator
 
+def zero_flux_func(vertices, **kwargs):
+    return np.zeros(np.array(vertices.shape[:2]))
 
 def init_grid(num_x=11, max_x=None, min_x=0,
-              num_y=None, max_y=None, min_y=None):
+              num_y=None, max_y=None, min_y=None,
+              flux_func=zero_flux_func, **kwargs):
     """
     z[i, j] returns x_ij, y_ij
     f[i, j] returns f_ij
@@ -29,8 +32,8 @@ def init_grid(num_x=11, max_x=None, min_x=0,
         # default to square grid
         num_y = num_x
     if type(max_y) == type(None):
-        # default to pixel coordinates
-        max_y = num_y - 1
+        # default to max_x
+        max_y = max_x
     if type(min_y) == type(None):
         # default to min_x (which defaults to 0)
         min_y = min_x
@@ -41,10 +44,13 @@ def init_grid(num_x=11, max_x=None, min_x=0,
         np.linspace(min_y, max_y, num_y, endpoint=True),
         indexing='ij'))
 
-    # create fluxes
-    fluxes = np.zeros(np.array(vertices.shape[:2]) - 1)
+    # create centroids
+    centroids = vertex_centroids(vertices)
 
-    return vertices, fluxes
+    # create fluxes
+    fluxes = flux_func(centroids, **kwargs)
+
+    return vertices, centroids, fluxes
 
 def vertex_centroids(vertices):
     # this way we can have an array of centers of pixels of same shape as
@@ -74,24 +80,32 @@ class Source(object):
     Class shell.
     """
 
-    def __init__(self, init_grid_func=init_grid, **kwargs):
-        self.vertices, self.fluxes = init_grid_func(**kwargs)
-        self.centroids = vertex_centroids(self.vertices)
+    def __init__(self, num_x, **kwargs):
+        self.vertices, self.centroids, self.fluxes = init_grid(num_x, **kwargs)
 
         # this makes it easier to convert
         self.r0 = self.vertices[0, 0]
         self.r1 = self.vertices[1, 1]
+        self.x_min = self.vertices[:, :, 0].min()
+        self.y_min = self.vertices[:, :, 1].min()
+        self.x_max = self.vertices[:, :, 0].max()
+        self.y_max = self.vertices[:, :, 1].max()
 
-        self.moment_evaluator = Moment_Evaluator()
+        self.psf_evaluator = Moment_Evaluator()
 
     def update_centroids(self):
         # if you modify the vertices, you should update the centroids, too!
         self.centroids = vertex_centroids(self.vertices)
+        self.r0 = self.vertices[0, 0]
+        self.r1 = self.vertices[1, 1]
+        self.x_min = self.vertices[:, :, 0].min()
+        self.y_min = self.vertices[:, :, 1].min()
+        self.x_max = self.vertices[:, :, 0].max()
+        self.y_max = self.vertices[:, :, 1].max()
 
-
-    def evaluate_moments(self):
+    def evaluate_psf(self):
         # evaluate moments of fluxes image naievely in pixel coordinates
-        return self.moment_evaluator(self.fluxes)
+        return self.psf_evaluator(self.fluxes)
 
     def plot(self, ZZ, XX=None, YY=None, fig=None, ax=None,
              pcolormesh_kwargs_in={}):
@@ -143,11 +157,15 @@ class Source(object):
         fig, ax = self.plot(ZZ, XX, YY, fig=fig, ax=ax)
         return fig, ax
 
-    def plot_naieve_grid(self, fig=None, ax=None):
+    def plot_pixel_grid(self, fig=None, ax=None):
         # assume each pixel is equal size
         ZZ = self.fluxes
         fig, ax = self.plot(ZZ, fig=fig, ax=ax)
         return fig, ax
+
+    def plot_naieve_grid(self, fig=None, ax=None):
+        print('Warning! plot_naieve_grid deprecated! Use plot_pixel_grid!')
+        self.plot_pixel_grid(fig=fig, ax=ax)
 
     def plot_vertices(self, fig=None, ax=None):
         # just the distorted grid
@@ -156,22 +174,4 @@ class Source(object):
         ZZ = np.zeros(np.array(XX.shape) - 1)
         fig, ax = self.plot(ZZ, XX, YY, fig=fig, ax=ax)
         return fig, ax
-
-
-class StationarySource(Source):
-    """
-    Idea is here you give a fixed array type object and then deposit it onto
-    a grid.
-    """
-    def __init__(self, source_function,
-                 num_x=11, max_x=None, min_x=0,
-                 num_y=None, max_y=None, min_y=None):
-        super(StationarySource, self).__init__(init_grid_func=init_grid,
-                num_x=num_x, max_x=max_x, min_x=min_x,
-                num_y=num_y, max_y=max_y, min_y=min_y)
-        # some kind of way of specifying any pixel coordinate transformations?
-
-        # now create the source array
-        self.source_function = source_function
-        self.fluxes = self.source_function(self.centroids)
 

@@ -1,11 +1,12 @@
 """
 Movers update flux AND vertices
+
+TODO: Add method for adding movers
 """
 
 import numpy as np
 
 from weak_sauce.r2d import deposit
-from weak_sauce.sources import StationarySource
 
 class Mover(object):
     """
@@ -20,13 +21,16 @@ class Mover(object):
         raise NotImplementedError
 
     def move(self, source, **kwargs):
-        source.vertices = self.move_vertices(source.vertices, source.fluxes,
+        vertices = self.move_vertices(source.vertices, source.fluxes,
                                              **kwargs)
-        source.fluxes = self.move_fluxes(source.vertices, source.fluxes,
+        source.vertices = vertices
+        source.update_centroids()
+        fluxes = self.move_fluxes(source.vertices, source.fluxes,
                                      **kwargs)
+        source.fluxes += fluxes
 
     def __call__(self, source, **kwargs):
-        return self.move(source, **kwargs)
+        self.move(source, **kwargs)
 
 class StationaryMover(Mover):
     """
@@ -55,7 +59,7 @@ class FixedIlluminationMover(StationaryMover):
         # coordinates that facilitates deposition.
         # basically if ri are your stationary source grid then you need pixel
         # coordinates to obey (ri - r0) / r1
-        return (vertices - self.r0) / self.r1
+        return (vertices - self.r0) / (self.r1 - self.r0)
 
     def move_fluxes(self, vertices, fluxes, **kwargs):
         return deposit(self.fluxes, self.pixel_coordinates(vertices))
@@ -80,14 +84,14 @@ class UniformIlluminationMover(StationaryMover):
         fluxes *= self.flux
         return fluxes
 
-class GaussianVerticesMover(UniformIlluminationMover):
+class GaussianVerticesMover(StationaryMover):
     """
     Given a covariance matrix and means, move vertices by sampling gaussian.
     """
 
     def __init__(self, mu_x=0, mu_y=0, sigma_xx=1, sigma_yy=1, sigma_xy=0,
-                 flux=1):
-        super(GaussianVerticesMover, self).__init__(flux=flux)
+                 **kwargs):
+        super(GaussianVerticesMover, self).__init__(**kwargs)
         self.mean = np.array([mu_x, mu_y])
         self.cov = np.array([[sigma_xx, sigma_xy],
                              [sigma_xy, sigma_yy]])
@@ -99,15 +103,22 @@ class GaussianVerticesMover(UniformIlluminationMover):
                 size=vertices.shape[:2])
         return vertices + perts
 
+class UniformGaussianMover(GaussianVerticesMover, UniformIlluminationMover):
+    """
+    multiple inheritence
+    """
+    def __init__(self, **kwargs):
+        super(UniformGaussianMover, self).__init__(**kwargs)
 
-class TreeringVerticesMover(UniformIlluminationMover):
+
+class TreeringVerticesMover(StationaryMover):
     """
     Give a center, wavelength, amplitude, and phase.
     """
 
     def __init__(self, center=np.array([0,0]), wavelength=10,
-                 amplitude=1, phase=0, flux=1):
-        super(TreeringVerticesMover, self).__init__(flux=flux)
+                 amplitude=1, phase=0, **kwargs):
+        super(TreeringVerticesMover, self).__init__(**kwargs)
         self.center = center
         self.wavelength = wavelength
         self.amplitude = amplitude
@@ -126,6 +137,13 @@ class TreeringVerticesMover(UniformIlluminationMover):
         vertices = np.dstack((r * np.cos(theta),
                               r * np.sin(theta))) + self.center
         return vertices
+
+class UniformTreeringMover(TreeringVerticesMover, UniformIlluminationMover):
+    """
+    multiple inheritence
+    """
+    def __init__(self, **kwargs):
+        super(UniformTreeringMover, self).__init__(**kwargs)
 
 
 if __name__ == '__main__':
