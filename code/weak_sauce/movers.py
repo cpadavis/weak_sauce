@@ -27,7 +27,7 @@ class Mover(object):
         source.update_centroids()
         fluxes = self.move_fluxes(source.vertices, source.fluxes,
                                      **kwargs)
-        source.fluxes += fluxes
+        source.fluxes = fluxes
 
     def __call__(self, source, **kwargs):
         self.move(source, **kwargs)
