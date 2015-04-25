@@ -1,5 +1,9 @@
 """
 Given a set of true fluxes, move vertices to try to match it.
+
+TODO: Different types of movings
+TODO: Convergence Criteria (to be put into a moveable grid
+TODO: Keep track of relative changes?
 """
 
 
@@ -22,13 +26,13 @@ class FlatFitter(Mover):
         """
         lnlike = -0.5 * sum_ij((A_ij - L * Ahat_ij)^2)
         """
-        luminosity = self.luminosity
+        luminosity = np.abs(self.luminosity)
         x = vertices[:, :, 0]
         y = vertices[:, :, 1]
 
         # weight
         A = self.area(x, y)
-        w_ij = (self.true_fluxes - luminosity * np.abs(A)) * np.sign(A)
+        w_ij = (self.true_fluxes - luminosity * np.abs(A)) * np.sign(A) * luminosity
 
         # each displacement
         dA_ij__dx_ij = (y[:-1, 1:] -  y[1:, :-1]) * 0.5
@@ -71,8 +75,9 @@ class FlatFitter(Mover):
 
         dLdvertices = np.dstack((dLdx, dLdy))
 
+        # TODO: This normalization by sum of true fluxes cannot be correct
         self.dLdluminosity = np.sum((self.true_fluxes - luminosity * np.abs(A)) *
-                               np.abs(A))
+                               np.abs(A)) / np.sum(self.true_fluxes)
 
         return dLdvertices
 
@@ -120,17 +125,19 @@ class FlatFitter(Mover):
         dLdvertices = self.derivatives(vertices, fluxes)
         # apply derivatives
         vertices = vertices + step_size * dLdvertices
+        # TODO: This also doesn't work.
         #self.luminosity = self.luminosity + step_size * self.dLdluminosity
 
         # enforce that two edges (say the X edges) cannot move
         # enforce by translation and squish and compensation in luminosity
 
 
-        # sort vertices to maintain ordering
-        v_flat = vertices.reshape(vertices.shape[0] * vertices.shape[1],
-                                  vertices.shape[2])
-        # non-trivial
-        vertices = np.sort(v_flat[np.argsort(v_flat[:,0])].reshape(
-            vertices.shape), axis=1)
+        # TODO: This didn't really work and actually was causing bugs. Shit.
+        # # sort vertices to maintain ordering
+        # v_flat = vertices.reshape(vertices.shape[0] * vertices.shape[1],
+        #                           vertices.shape[2])
+        # # non-trivial
+        # vertices = np.sort(v_flat[np.argsort(v_flat[:,0])].reshape(
+        #     vertices.shape), axis=1)
 
         return vertices
