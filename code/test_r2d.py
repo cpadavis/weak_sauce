@@ -11,6 +11,7 @@ basedir_name = check_output(["git", "rev-parse", "--show-toplevel"])
 r2d_libpath = basedir_name[:-1]+'/code/r3d/r2d_lib.so' #cut newline char
 r2d = ctypes.CDLL(r2d_libpath)
 
+
 # define some types
 r2d_int = ctypes.c_int
 r2d_long = ctypes.c_int

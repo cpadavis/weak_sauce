@@ -6,6 +6,7 @@ Nearly all of these should use the deposit grid method (to be incorporated in he
 self.fluxes = self.source(self.vertices, self.fluxes, **kwargs)
 
 TODO: Add method for adding sources
+TODO: If there are greater than some number of vertex columns or rows, make sure you don't plot the vertex lines by default (except for plot_vertices, of course)
 """
 
 import numpy as np
@@ -106,6 +107,9 @@ def check_vertices(vertices):
 
     conds = ((Px > xmin) * (Px < xmax) * (Py > ymin) * (Py < ymax))
 
+    # next we shall check that we don't have a vertex inbetween that we
+    # could've been using instead.
+
 class Source(object):
     """
     Class shell.
@@ -196,7 +200,7 @@ class Source(object):
 
     def plot_naieve_grid(self, fig=None, ax=None):
         print('Warning! plot_naieve_grid deprecated! Use plot_pixel_grid!')
-        self.plot_pixel_grid(fig=fig, ax=ax)
+        return self.plot_pixel_grid(fig=fig, ax=ax)
 
     def plot_vertices(self, fig=None, ax=None):
         # just the distorted grid
