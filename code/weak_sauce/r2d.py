@@ -51,16 +51,12 @@ r2d.r2d_init.argtypes = [r2d_int]
 
 
 # r2d.r2d_set_dest_grid
-r2d.r2d_set_dest_grid.restype = r2d_info
 #r2d.r2d_set_dest_grid.argtypes = [ctypes.POINTER(r2d_real),
 #                                  r2d_dvec2, r2d_rvec2]
 # r2d.r2d_finalize
 #r2d.r2d_finalize.restype = ctypes.c_void
 #r2d.r2d_finalize.argtypes
 # r2d.r2d_rasterize_quad
-r2d.r2d_rasterize_quad.restype = r2d_info
-r2d.r2d_rasterize_quad.argtypes = [r2d_real, (r2d_plane * 4), (r2d_dvec2 * 2)]
-
 
 def get_box_index_bounds(vertices):
     # assume vertices are array
@@ -73,12 +69,12 @@ def get_box_index_bounds(vertices):
     return xmin, ymin, xmax, ymax
 
 
-def overlap_pixel(vertices, dest_window):
+def overlap_pixel(vertices, dest_window, verts_test, ij, bounds):
     # get the overlap deposits of a bounding box around the vertices
     #dest_window = np.ceil(np.max(vertices, axis=0)).astype(int).tolist()
 
     dest_window_c = r2d_rvec2(*dest_window)
-    info = r2d.r2d_init(np.prod(dest_window))
+    info = r2d.r2d_init(np.prod(dest_window)*10)
     nverts = r2d_int(4)  # assume always 4
 
     dest_dims = dest_window
@@ -89,13 +85,7 @@ def overlap_pixel(vertices, dest_window):
     ibounds[1].x = dest_dims[0]
     ibounds[1].y = dest_dims[1]
 
-    dest_dims_c = r2d_dvec2(*dest_dims)
-    dest_grid_c = (r2d_real * len(dest_grid))(*dest_grid)
-    dest_grid = dest_grid.reshape(dest_dims)
-    r2d.r2d_set_dest_grid.argtypes = [ctypes.POINTER(type(dest_grid_c)),
-                                      r2d_dvec2, r2d_rvec2]
-    info2 = r2d.r2d_set_dest_grid(ctypes.pointer(dest_grid_c), dest_dims_c,
-                                  dest_window_c)
+
 
     # put in some verts
     # verts = (r2d_vertex * 4)()
@@ -111,7 +101,17 @@ def overlap_pixel(vertices, dest_window):
     r2d.r2du_faces_from_verts(ctypes.pointer(verts), nverts,
                               ctypes.pointer(faces))
 
-    info3 = r2d.r2d_rasterize_quad(r2d_real(1), faces, ibounds)
+    dest_dims_c = r2d_dvec2(*dest_dims)
+    dest_grid_c = (r2d_real * len(dest_grid))(*dest_grid)
+    dest_grid = dest_grid.reshape(dest_dims)
+    r2d.r2d_set_dest_grid.argtypes = [ctypes.POINTER(type(dest_grid_c)),
+                                      r2d_dvec2, r2d_rvec2]
+    r2d.r2d_set_dest_grid.restype = r2d_info
+    info2 = r2d.r2d_set_dest_grid(ctypes.pointer(dest_grid_c), dest_dims_c,
+                                  dest_window_c)
+    r2d.r2d_rasterize_quad.restype = r2d_info
+    r2d.r2d_rasterize_quad.argtypes = [r2d_real, (r2d_plane * 4), (r2d_dvec2 * 2)]
+    info3 = r2d.r2d_rasterize_quad(r2d_real(1.0), faces, ibounds)
 
     r2d.r2d_finalize()
 
@@ -119,7 +119,28 @@ def overlap_pixel(vertices, dest_window):
     for i in xrange(dest_grid.size):
         x = int(i / dest_dims[1])
         y = int(i % dest_dims[1])
+        #print(i, x, y, dest_grid_c[i])
         dest_grid[x, y] = dest_grid_c[i]
+
+    if info3.good == 0:
+        print('vertices')
+        print(vertices)
+        print(verts_test)
+        print(ij)
+        print(bounds)
+        print('dest_window')
+        print(dest_window)
+        print('info 2')
+        print(info2.good)
+        print(info2.vtot)
+        print(info2.vox_min)
+        print(info2.vox_max)
+        print('info 3')
+        print(info3.good)
+        print(info3.vtot)
+        print(info3.vox_min)
+        print(info3.vox_max)
+        print('\n\n')
 
     return dest_grid
 
@@ -155,7 +176,7 @@ def deposit(source_array, vertices):
                 ymax = source_array.shape[1] - 1
             source_ij = source_array[xmin:xmax + 1, ymin:ymax + 1]
             dest_window = [xmax-xmin + 1, ymax-ymin + 1]
-            overlap_ij = overlap_pixel(vertices_ij_floored, dest_window)
+            overlap_ij = overlap_pixel(vertices_ij_floored, dest_window, vertices_ij, [i,j], get_box_index_bounds(vertices_ij))
             # if j == 6:
             #     # import ipdb; ipdb.set_trace()
             if np.any(np.array(overlap_ij.shape) != np.array(source_ij.shape)):
