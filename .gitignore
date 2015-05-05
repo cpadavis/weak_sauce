@@ -5,6 +5,12 @@ __pycache__/
 #temp files
 *.py~
 notebooks/.ipynb_checkpoints
+*#
+*~
+
+#huge fits files
+*.fits
+*.fz
 
 # junk
 core.*
