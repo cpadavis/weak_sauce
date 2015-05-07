@@ -25,28 +25,44 @@ def detrend(image):
     smoothed = sp.ndimage.convolve(image,kernel)
     return image-smoothed
 
-def makeCorr(img_to_use):
+def makeCorr(img_to_use, rescale_cmap=True, N=5):
     img_to_use = img_to_use - np.mean(img_to_use)
-    corr_arr = np.zeros((11,11))
+    corr_arr = np.zeros((N * 2 + 1, N * 2 + 1))
 
-    for y in np.arange(11):
-        for x in np.arange(11):
-            corr_arr[y,x] = np.sum(np.roll(np.roll(img_to_use,y-5,axis=0),x-5,axis=1)*img_to_use)/np.sum(img_to_use*img_to_use)
+    for y in np.arange(N * 2 + 1):
+        for x in np.arange(N * 2 + 1):
+            corr_arr[y,x] = np.sum(np.roll(np.roll(img_to_use,y-N,axis=0),x-N,axis=1)*img_to_use)/np.sum(img_to_use*img_to_use)
 
     fig,ax = plt.subplots()
     b = np.max(corr_arr)
     a = np.min(corr_arr)
     c = 0
     midpoint = (c - a) / (b - a)
-    cmap = shiftedColorMap(plt.cm.RdBu_r,midpoint=midpoint)
-    plt.imshow(corr_arr,interpolation='None',cmap=cmap,extent=(-5,5,-5,5))
+    if rescale_cmap:
+        cmap = shiftedColorMap(plt.cm.RdBu_r,midpoint=midpoint)
+        vmin=a
+        vmax=b
+    # elif np.all(corr_arr >= 0):
+    #     cmap = plt.cm.Reds
+    #     vmin=None
+    #     vmax=None
+    # elif np.all(corr_arr <= 0):
+    #     cmap = plt.cm.Bu_r
+    #     vmin=None
+    #     vmax=None
+    else:
+        cmap = plt.cm.RdBu_r
+        vmin=None
+        vmax=None
+    plt.imshow(corr_arr,interpolation='None',cmap=cmap,extent=(-N,N,-N,N),
+               vmin=vmin, vmax=vmax)
     plt.title('Pixel-Neighbor Correlations')
     #eventually print text in pixels...
     #for x_val, y_val in zip(np.arange(11), np.arange(11)):
     #    c = np.round(100*corr_arr[y_val,x_val],0) 
     #    ax.text(y_val, x_val, c, va='center', ha='center')
     cbar = plt.colorbar()
-    print np.round(100*corr_arr[3:8,3:8],1)
+    print np.round(100*corr_arr[N-2:N+3,N-2:N+3],1)
     #plt.figure()
     #tmp = plt.hist(img_to_use.flatten(),bins=20)
     return corr_arr
