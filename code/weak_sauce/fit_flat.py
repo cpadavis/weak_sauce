@@ -14,13 +14,22 @@ from weak_sauce.movers import Mover
 from weak_sauce.grid import MoveableGrid
 
 class FlatFitter(Mover):
-    def __init__(self, true_fluxes, luminosity=1):
+    def __init__(self, true_fluxes, luminosity=1,tychoX=.1,tychoY=.1):
         self.true_fluxes = true_fluxes
         self.luminosity = luminosity
         self.dLdluminosity = 0
+        self.firstStepTaken = False
+        self.tychonoffSigmaX = tychoX
+        self.tychonoffSigmaY = tychoY
+        self.verbose = False
 
     def lnlike(self, vertices, fluxes):
-        return -0.5 * np.sum(np.square(fluxes - self.true_fluxes))
+        if self.tychonoffSigmaX != 0 and self.firstStepTaken :
+            return -0.5 * np.sum(np.square(fluxes - self.true_fluxes)) \
+            -0.5 * np.sum(np.square(vertices[:,:,0] - self.original_vertices[:,:,0]))/(self.tychonoffSigmaX**2) \
+            -0.5 * np.sum(np.square(vertices[:,:,1] - self.original_vertices[:,:,1]))/(self.tychonoffSigmaY**2)
+        else:
+            return -0.5 * np.sum(np.square(fluxes - self.true_fluxes))
 
     def derivatives(self, vertices, fluxes):
         """
@@ -66,12 +75,18 @@ class FlatFitter(Mover):
         dLdx[1:, 1:] += dA_ij__dx_ip1jp1 * w_ij
         dLdx[:-1, 1:] += dA_ij__dx_ijp1 * w_ij
         dLdx[1:, :-1] += dA_ij__dx_ip1j * w_ij
+        tychonoff_adjustmentX = -np.abs(self.original_vertices[:,:,0]-x)/(self.tychonoffSigmaX**2)
+        if self.verbose:
+            print 'x adjustment is: ', tychonoff_adjustmentX
+        dLdx += tychonoff_adjustmentX
 
         dLdy = np.zeros(y.shape)
         dLdy[:-1, :-1] += dA_ij__dy_ij * w_ij
         dLdy[1:, 1:] += dA_ij__dy_ip1jp1 * w_ij
         dLdy[:-1, 1:] += dA_ij__dy_ijp1 * w_ij
         dLdy[1:, :-1] += dA_ij__dy_ip1j * w_ij
+        tychonoff_adjustmentY = -np.abs(self.original_vertices[:,:,1]-y)/(self.tychonoffSigmaY**2)
+        dLdy += tychonoff_adjustmentY
 
         dLdvertices = np.dstack((dLdx, dLdy))
 
@@ -108,23 +123,31 @@ class FlatFitter(Mover):
         if update == 'sgd':
           dx = -learning_rate * grads[p]
         elif update == 'momentum':
-          if not p in self.step_cache: 
+          if not p in self.step_cache:
             self.step_cache[p] = np.zeros(grads[p].shape)
           dx = np.zeros_like(grads[p]) # you can remove this after
           dx = momentum * self.step_cache[p] - learning_rate * grads[p]
           self.step_cache[p] = dx
         elif update == 'rmsprop':
           decay_rate = 0.99 # you could also make this an option
-          if not p in self.step_cache: 
+          if not p in self.step_cache:
             self.step_cache[p] = np.zeros(grads[p].shape)
           dx = np.zeros_like(grads[p]) # you can remove this after
           self.step_cache[p] = self.step_cache[p] * decay_rate + (1.0 - decay_rate) * grads[p] ** 2
           dx = -(learning_rate * grads[p]) / np.sqrt(self.step_cache[p] + 1e-8)
         """
         # get derivatives
+        if not self.firstStepTaken:
+            if self.verbose:
+                print 'this is the first step'
+            self.original_vertices = vertices.copy()
+            self.firstStepTaken = True
         dLdvertices = self.derivatives(vertices, fluxes)
         # apply derivatives
         vertices = vertices + step_size * dLdvertices
+        if self.verbose:
+            print vertices
+            print self.original_vertices
         # TODO: This also doesn't work.
         #self.luminosity = self.luminosity + step_size * self.dLdluminosity
 
