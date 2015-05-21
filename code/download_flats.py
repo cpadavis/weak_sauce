@@ -32,7 +32,7 @@ if __name__ == '__main__':
     csv_path = '{0}/httppath_exposure.csv'.format(out_directory)
     if options.job == 'paths':
         print('Downloading CSV of exposures.')
-        query = "select path, obstype, band, exposurename, id, expnum, nite, mjd_obs from httppath_exposure where obstype in ('dome flat', 'sky flat')"
+        query = "select path, obstype, band, exposurename, id, expnum, nite, mjd_obs from httppath_exposure where obstype in ('dome flat')"
 
         try:
             import easyaccess
@@ -51,10 +51,18 @@ if __name__ == '__main__':
     elif options.job == 'images':
         print('Using CSV at {0}'.format(csv_path))
         csv = pd.read_csv(csv_path)
-        # download based on band and obstype and cutoff date
-
-        for obstype in csv['OBSTYPE'].unique():
-            for band in csv['BAND'].unique():
+        # cut out duplicate filenames
+        # drops around 5000 rows
+        csv.drop_duplicates(subset='EXPOSURENAME',
+                            take_last=True,
+                            inplace=True)
+        # filter based on ugrizY and obstypes
+        ugrizY = ['g', 'r', 'i', 'z', 'Y', 'u']
+        obstypes = ['dome flat']
+        csv = csv[csv['BAND'].isin(ugrizY)]
+        # download based on band and obstype
+        for obstype in obstypes:
+            for band in ugrizY:
                 conds = (csv['OBSTYPE'] == obstype) * (csv['BAND'] == band)
                 for index, row in csv[conds].iterrows():
                     httppath = row['PATH']
