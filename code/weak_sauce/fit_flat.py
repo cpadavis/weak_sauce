@@ -75,7 +75,7 @@ class FlatFitter(Mover):
         dLdx[1:, 1:] += dA_ij__dx_ip1jp1 * w_ij
         dLdx[:-1, 1:] += dA_ij__dx_ijp1 * w_ij
         dLdx[1:, :-1] += dA_ij__dx_ip1j * w_ij
-        tychonoff_adjustmentX = -np.abs(self.original_vertices[:,:,0]-x)/(self.tychonoffSigmaX**2)
+        tychonoff_adjustmentX = -0.5*np.square(self.original_vertices[:,:,0]-x)/(self.tychonoffSigmaX**2)
         if self.verbose:
             print 'x adjustment is: ', tychonoff_adjustmentX
         dLdx += tychonoff_adjustmentX
@@ -85,7 +85,7 @@ class FlatFitter(Mover):
         dLdy[1:, 1:] += dA_ij__dy_ip1jp1 * w_ij
         dLdy[:-1, 1:] += dA_ij__dy_ijp1 * w_ij
         dLdy[1:, :-1] += dA_ij__dy_ip1j * w_ij
-        tychonoff_adjustmentY = -np.abs(self.original_vertices[:,:,1]-y)/(self.tychonoffSigmaY**2)
+        tychonoff_adjustmentY = -0.5*np.square(self.original_vertices[:,:,1]-y)/(self.tychonoffSigmaY**2)
         dLdy += tychonoff_adjustmentY
 
         dLdvertices = np.dstack((dLdx, dLdy))
