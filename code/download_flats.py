@@ -5,6 +5,7 @@ from subprocess import call
 from os import path, makedirs
 import pandas as pd
 
+
 def check_make(folder):
     if not path.exists(folder):
         makedirs(folder)
@@ -31,12 +32,22 @@ if __name__ == '__main__':
     csv_path = '{0}/httppath_exposure.csv'.format(out_directory)
     if options.job == 'paths':
         print('Downloading CSV of exposures.')
-        command = ['easyaccess', '-c',
-                   #'"',
-                   "select path, obstype, band, exposurename, id, expnum, nite, mjd_obs from httppath_exposure where obstype in ('dome flat', 'sky flat'); > {0}".format(csv_path),
-                   #'"']
-                   ]
-        call(command)
+        query = "select path, obstype, band, exposurename, id, expnum, nite, mjd_obs from httppath_exposure where obstype in ('dome flat', 'sky flat')"
+
+        try:
+            import easyaccess
+            connection = easyaccess.connect()
+            cursor = connection.cursor()
+            #csv = connection.query_to_pandas(query)
+            connection.query_and_save(query, csv_path)
+            connection.close()
+
+        except:
+            # huh. Well let's try commandline
+            command = ['easyaccess', '-c',
+                       "{0}; > {1}".format(query, csv_path)]
+            call(command)
+
     elif options.job == 'images':
         print('Using CSV at {0}'.format(csv_path))
         csv = pd.read_csv(csv_path)
