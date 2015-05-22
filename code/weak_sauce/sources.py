@@ -145,7 +145,10 @@ class Source(object):
     def plot(self, ZZ, XX=None, YY=None, fig=None, ax=None,
              pcolormesh_kwargs_in={}):
 
-        pcolormesh_kwargs = {'linewidths': 2, 'edgecolors': 'k'}
+        pcolormesh_kwargs = {'linewidths': 0, 'edgecolors': 'k'}
+        # if we have a small number of points, put the edges back in
+        if np.sqrt(np.prod(np.shape(ZZ))) < 30:
+            pcolormesh_kwargs['linewidths'] = 2
         pcolormesh_kwargs.update(pcolormesh_kwargs_in)
         if type(fig) == type(None):
             fig, ax = plt.subplots()
@@ -157,6 +160,7 @@ class Source(object):
         vmin = a
         vmax = b
         if np.all(ZZ == np.median(ZZ)):
+            # this means we have uniform flux
             cmap = plt.cm.gray_r
             # this sets the faces transparent
             vmin = np.median(ZZ) + 1
@@ -207,6 +211,8 @@ class Source(object):
         XX = self.vertices[:, :, 0]
         YY = self.vertices[:, :, 1]
         ZZ = np.zeros(np.array(XX.shape) - 1)
-        fig, ax = self.plot(ZZ, XX, YY, fig=fig, ax=ax)
+        pcolormesh_kwargs_in = {'linewidths': 2}
+        fig, ax = self.plot(ZZ, XX, YY, fig=fig, ax=ax,
+                            pcolormesh_kwargs_in=pcolormesh_kwargs_in)
         return fig, ax
 

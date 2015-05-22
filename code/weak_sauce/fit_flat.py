@@ -4,6 +4,7 @@ Given a set of true fluxes, move vertices to try to match it.
 TODO: Different types of movings
 TODO: Convergence Criteria (to be put into a moveable grid
 TODO: Keep track of relative changes?
+TODO: FlatFitter should be a moveable grid. The routine to create a step for moving the vertices can be a Mover still.
 """
 
 
