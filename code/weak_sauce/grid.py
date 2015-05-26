@@ -3,7 +3,7 @@ In here goes the grid class.
 """
 
 import numpy as np
-
+from weak_sauce.sources import check_vertices
 
 class MoveableGrid(object):
     """A mapper between two sets of grids -- say pixel and focal plane.
@@ -24,7 +24,7 @@ class MoveableGrid(object):
 
     def move_vertices(self, **kwargs):
         # some method that modifies self.vertices
-        self.source.vertices = self.mover.move_vertices(
+        self.source.vertices += self.mover.move_vertices(
                 self.source.vertices, self.source.fluxes, **kwargs)
 
     def move_fluxes(self, **kwargs):
@@ -32,13 +32,27 @@ class MoveableGrid(object):
         # and also on some external function
         # This basically calls self.source function and adds it to the
         # fluxes
-        self.source.fluxes = self.mover.move_fluxes(
+        self.source.fluxes += self.mover.move_fluxes(
                 self.source.vertices, self.source.fluxes, **kwargs)
 
     def step(self, **kwargs):
         # self.update_fluxes(**kwargs)
         # self.update_vertices(**kwargs)
         self.mover(self.source, **kwargs)
+
+    def fit(self, xtol=0.0001, ftol=0.0001, maxiter=None, maxfun=None, **kwargs):
+        """
+        ala scipy.optimize:
+        xtol : float, optional
+            Relative error in xopt acceptable for convergence.
+        ftol : number, optional
+            Relative error in func(xopt) acceptable for convergence.
+        maxiter : int, optional
+            Maximum number of iterations to perform.
+        maxfun : number, optional
+            Maximum number of function evaluations to make.
+        """
+        raise NotImplementedError
 
     # wrap to the source object
     def evaluate_psf(self):

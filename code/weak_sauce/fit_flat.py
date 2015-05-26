@@ -99,8 +99,8 @@ class FlatFitter(Mover):
         x = vertices[:, :, 0]
         y = vertices[:, :, 1]
         # each box has (e.g. x) x[i,i] x[i,i+1], x[i+1,i], x[i+1,i+1]
-        fluxes = self.luminosity * np.abs(self.area(x, y))
-        return fluxes
+        dfluxes = self.luminosity * np.abs(self.area(x, y))
+        return dfluxes
 
     def move_vertices(self, vertices, fluxes, step_size,
                       **kwargs):
@@ -125,7 +125,7 @@ class FlatFitter(Mover):
         # get derivatives
         dLdvertices = self.derivatives(vertices, fluxes)
         # apply derivatives
-        vertices = vertices + step_size * dLdvertices
+        dvertices = step_size * dLdvertices
         # TODO: This also doesn't work.
         #self.luminosity = self.luminosity + step_size * self.dLdluminosity
 
@@ -141,4 +141,4 @@ class FlatFitter(Mover):
         # vertices = np.sort(v_flat[np.argsort(v_flat[:,0])].reshape(
         #     vertices.shape), axis=1)
 
-        return vertices
+        return dvertices

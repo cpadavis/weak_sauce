@@ -90,25 +90,27 @@ def check_vertices(vertices):
     y2 = y[1:, 1:]
     y3 = y[:-1, 1:]
 
-    # the deposit code needs convex polygons
-    # to find a convex polygon we see if the line between the two diagonals
-    # intersects:
-    # http://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-    denom = ((x0 - x1) * (y2 - y3) - (y0 - y1) * (x2 - x3))
-    Px = ((x0 * y1 - y0 * x1) * (x2 - x3) - (x0 - x1) * (x2 * y3 - y2 * x3))
-    Px /= denom
-    Py = ((x0 * y1 - y0 * x1) * (y2 - y3) - (y0 - y1) * (x2 * y3 - y2 * x3))
-    Py /= denom
-    # Px and Py must be inbetween the ys and xs
-    xmin = np.min([x0, x1, x2, x3], axis=0)
-    xmax = np.max([x0, x1, x2, x3], axis=0)
-    ymin = np.min([y0, y1, y2, y3], axis=0)
-    ymax = np.max([y0, y1, y2, y3], axis=0)
+    # the deposit code needs clockwise convex polygons
+    # this can be tested with cross product: need that cross product to be the
+    # same sign and positive.
+    dx01 = x1 - x0
+    dx12 = x2 - x1
+    dx23 = x3 - x2
+    dx30 = x0 - x3
+    dy01 = y1 - y0
+    dy12 = y2 - y1
+    dy23 = y3 - y2
+    dy30 = y0 - y3
 
-    conds = ((Px > xmin) * (Px < xmax) * (Py > ymin) * (Py < ymax))
-
-    # next we shall check that we don't have a vertex inbetween that we
-    # could've been using instead.
+    cp = np.array([dx01 * dy12 - dx12 * dy01,
+                   dx12 * dy23 - dx23 * dy12,
+                   dx23 * dy30 - dx30 * dy23,
+                   dx30 * dy01 - dx01 * dy30])
+    if np.any(cp <= 0):
+        # return that we failed
+        return False
+    # success means we're good!
+    return True
 
 class Source(object):
     """
@@ -216,3 +218,13 @@ class Source(object):
                             pcolormesh_kwargs_in=pcolormesh_kwargs_in)
         return fig, ax
 
+"""
+# example source with concave vertex
+from weak_sauce.sources import Source
+source = Source(num_x=4)
+source.vertices[2,2] = [1.1, 1.1]
+assert check_vertices(source.vertices) == False
+source = Source(num_x=4)
+source.vertices[2,2] = [0.8, 0.8]
+vertices = source.vertices
+"""
