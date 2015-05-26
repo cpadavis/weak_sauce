@@ -43,7 +43,7 @@ class MoveableGrid(object):
     def lnlike(self, **kwargs):
         raise NotImplementedError
 
-    def fit(self, xtol=0.0001, ftol=0.0001, maxiter=None, maxfun=None,
+    def fit(self, xtol=0.0001, ftol=0.0001, maxiter=10000, maxfun=None,
             **kwargs):
         """
         ala scipy.optimize:
