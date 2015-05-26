@@ -11,14 +11,30 @@ TODO: FlatFitter should be a moveable grid. The routine to create a step for mov
 import numpy as np
 
 
-from weak_sauce.movers import Mover
+from weak_sauce.movers import UniformIlluminationMover
 from weak_sauce.grid import MoveableGrid
 
-class FlatFitter(Mover):
-    def __init__(self, true_fluxes, luminosity=1):
+class FlatFitter(MoveableGrid):
+    def __init__(self, source, true_fluxes, luminosity=1, step_size=1e-4,
+                 **kwargs):
+        mover = FlatMover(true_fluxes=true_fluxes, luminosity=luminosity,
+                          step_size=step_size)
+        super(FlatFitter, self).__init__(source=source, mover=mover, **kwargs)
+
+    def lnlike(self):
+        return self.mover.lnlike(self.source.vertices, self.source.fluxes)
+
+
+
+class FlatMover(UniformIlluminationMover):
+    """
+    This Mover takes true_fluxes and uses them to tell the source how to move.
+    move_fluxes method based on UniformIlluminationMover
+    """
+    def __init__(self, true_fluxes, luminosity=1, step_size=1e-4, **kwargs):
+        super(FlatMover, self).__init__(luminosity=luminosity, **kwargs)
         self.true_fluxes = true_fluxes
-        self.luminosity = luminosity
-        self.dLdluminosity = 0
+        self.step_sze = step_size
 
     def lnlike(self, vertices, fluxes):
         return -0.5 * np.sum(np.square(fluxes - self.true_fluxes))
@@ -32,17 +48,17 @@ class FlatFitter(Mover):
         y = vertices[:, :, 1]
 
         # weight
-        A = self.area(x, y)
+        A = self.area(vertices)
         w_ij = (self.true_fluxes - luminosity * np.abs(A)) * np.sign(A) * luminosity
 
         # each displacement
-        dA_ij__dx_ij = (y[:-1, 1:] -  y[1:, :-1]) * 0.5
-        dA_ij__dx_ip1jp1 = - (y[:-1, 1:] -  y[1:, :-1]) * 0.5
+        dA_ij__dx_ij = (y[:-1, 1:] - y[1:, :-1]) * 0.5
+        dA_ij__dx_ip1jp1 = - (y[:-1, 1:] - y[1:, :-1]) * 0.5
         dA_ij__dx_ijp1 = - (y[:-1, :-1] - y[1:, 1:]) * 0.5
         dA_ij__dx_ip1j = (y[:-1, :-1] - y[1:, 1:]) * 0.5
 
-        dA_ij__dy_ij = - (x[:-1, 1:] -  x[1:, :-1]) * 0.5
-        dA_ij__dy_ip1jp1 = (x[:-1, 1:] -  x[1:, :-1]) * 0.5
+        dA_ij__dy_ij = - (x[:-1, 1:] - x[1:, :-1]) * 0.5
+        dA_ij__dy_ip1jp1 = (x[:-1, 1:] - x[1:, :-1]) * 0.5
         dA_ij__dy_ijp1 = (x[:-1, :-1] - x[1:, 1:]) * 0.5
         dA_ij__dy_ip1j = - (x[:-1, :-1] - x[1:, 1:]) * 0.5
 
@@ -76,63 +92,27 @@ class FlatFitter(Mover):
 
         dLdvertices = np.dstack((dLdx, dLdy))
 
-        # TODO: This normalization by sum of true fluxes cannot be correct
-        self.dLdluminosity = np.sum((self.true_fluxes - luminosity * np.abs(A)) *
-                               np.abs(A)) / np.sum(self.true_fluxes)
+        # # TODO: This normalization by sum of true fluxes cannot be correct
+        # dLdluminosity = np.sum((self.true_fluxes - luminosity * np.abs(A)) *
+        #                        np.abs(A)) / np.sum(self.true_fluxes)
 
         return dLdvertices
 
-
-    def area(self, x, y):
-        """
-        A_i,j = ((x_i+1,j+1 - x_i,j) * (y_i,j+1 - y_i+1,j)
-              -  (x_i,j+1 - x_i+1,j) * (y_i+1,j+1 - y_i,j)) / 2
-        """
-        A = ((x[:-1, :-1] - x[1:, 1:]) *
-             (y[:-1, 1:] -  y[1:, :-1]) -
-             (x[:-1, 1:] -  x[1:, :-1]) *
-             (y[:-1, :-1] - y[1:, 1:])) * 0.5
-        return A
-
-    def move_fluxes(self, vertices, fluxes, **kwargs):
-        # flux in a box is based on total area of box
-        x = vertices[:, :, 0]
-        y = vertices[:, :, 1]
-        # each box has (e.g. x) x[i,i] x[i,i+1], x[i+1,i], x[i+1,i+1]
-        dfluxes = self.luminosity * np.abs(self.area(x, y))
-        return dfluxes
-
-    def move_vertices(self, vertices, fluxes, step_size,
+    def move_vertices(self, vertices, fluxes, step_size=None,
                       **kwargs):
-        # TODO: incorporate several different parameter update modes
-        """
-        if update == 'sgd':
-          dx = -learning_rate * grads[p]
-        elif update == 'momentum':
-          if not p in self.step_cache: 
-            self.step_cache[p] = np.zeros(grads[p].shape)
-          dx = np.zeros_like(grads[p]) # you can remove this after
-          dx = momentum * self.step_cache[p] - learning_rate * grads[p]
-          self.step_cache[p] = dx
-        elif update == 'rmsprop':
-          decay_rate = 0.99 # you could also make this an option
-          if not p in self.step_cache: 
-            self.step_cache[p] = np.zeros(grads[p].shape)
-          dx = np.zeros_like(grads[p]) # you can remove this after
-          self.step_cache[p] = self.step_cache[p] * decay_rate + (1.0 - decay_rate) * grads[p] ** 2
-          dx = -(learning_rate * grads[p]) / np.sqrt(self.step_cache[p] + 1e-8)
-        """
-        # get derivatives
+
+        if type(step_size) == type(None):
+            step_size = self.step_size
+        # get and apply derivatives
         dLdvertices = self.derivatives(vertices, fluxes)
         # apply derivatives
         dvertices = step_size * dLdvertices
+
         # TODO: This also doesn't work.
         #self.luminosity = self.luminosity + step_size * self.dLdluminosity
 
         # enforce that two edges (say the X edges) cannot move
         # enforce by translation and squish and compensation in luminosity
-
-
         # TODO: This didn't really work and actually was causing bugs. Shit.
         # # sort vertices to maintain ordering
         # v_flat = vertices.reshape(vertices.shape[0] * vertices.shape[1],

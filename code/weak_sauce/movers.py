@@ -110,16 +110,26 @@ class UniformIlluminationMover(StationaryMover):
         super(UniformIlluminationMover, self).__init__(**kwargs)
         self.luminosity = luminosity  # counts per area
 
-    def move_fluxes(self, vertices, fluxes, **kwargs):
-        # flux in a box is based on total area of box
+    def area(self, vertices):
+        """
+        unsigned area of quadrilateral given vertices
+        A_i,j = ((x_i+1,j+1 - x_i,j) * (y_i,j+1 - y_i+1,j)
+              -  (x_i,j+1 - x_i+1,j) * (y_i+1,j+1 - y_i,j)) / 2
+        """
         x = vertices[:, :, 0]
         y = vertices[:, :, 1]
+
+        A = ((x[:-1, :-1] - x[1:, 1:]) *
+             (y[:-1, 1:] -  y[1:, :-1]) -
+             (x[:-1, 1:] -  x[1:, :-1]) *
+             (y[:-1, :-1] - y[1:, 1:])) * 0.5
+
+        return A
+
+    def move_fluxes(self, vertices, fluxes, **kwargs):
+        # flux in a box is based on total area of box
         # each box has (e.g. x) x[i,i] x[i,i+1], x[i+1,i], x[i+1,i+1]
-        dfluxes = 0.5 * np.abs((x[:-1, :-1] - x[1:, 1:]) *
-                               (y[:-1, 1:] -  y[1:, :-1]) -
-                               (x[:-1, 1:] -  x[1:, :-1]) *
-                               (y[:-1, :-1] - y[1:, 1:]))
-        dfluxes *= self.luminosity
+        dfluxes = self.luminosity * np.abs(self.area(vertices))
         return dfluxes
 
 class SimpleVerticesMover(StationaryMover):

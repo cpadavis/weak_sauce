@@ -40,7 +40,11 @@ class MoveableGrid(object):
         # self.update_vertices(**kwargs)
         self.mover(self.source, **kwargs)
 
-    def fit(self, xtol=0.0001, ftol=0.0001, maxiter=None, maxfun=None, **kwargs):
+    def lnlike(self, **kwargs):
+        raise NotImplementedError
+
+    def fit(self, xtol=0.0001, ftol=0.0001, maxiter=None, maxfun=None,
+            **kwargs):
         """
         ala scipy.optimize:
         xtol : float, optional
@@ -51,8 +55,50 @@ class MoveableGrid(object):
             Maximum number of iterations to perform.
         maxfun : number, optional
             Maximum number of function evaluations to make.
+            TODO: Currently not implimented
         """
-        raise NotImplementedError
+        # TODO: incorporate several different parameter update modes
+        """
+        if update == 'sgd':
+          dx = -learning_rate * grads[p]
+        elif update == 'momentum':
+          if not p in self.step_cache: 
+            self.step_cache[p] = np.zeros(grads[p].shape)
+          dx = np.zeros_like(grads[p]) # you can remove this after
+          dx = momentum * self.step_cache[p] - learning_rate * grads[p]
+          self.step_cache[p] = dx
+        elif update == 'rmsprop':
+          decay_rate = 0.99 # you could also make this an option
+          if not p in self.step_cache: 
+            self.step_cache[p] = np.zeros(grads[p].shape)
+          dx = np.zeros_like(grads[p]) # you can remove this after
+          self.step_cache[p] = self.step_cache[p] * decay_rate + (1.0 - decay_rate) * grads[p] ** 2
+          dx = -(learning_rate * grads[p]) / np.sqrt(self.step_cache[p] + 1e-8)
+        """
+        loss_history = []
+        average_delta_param_history = []
+        for it in xrange(maxiter):
+            vertices_old = self.source.vertices.copy()
+            fluxes_old = self.source.fluxes.copy()
+
+            self.step(**kwargs)
+
+            lnlike = np.abs(self.lnlike(**kwargs))
+            loss_history.append(lnlike)
+
+            delta_vx = np.sqrt(np.mean(np.square(self.source.vertices -
+                vertices_old)[:,:,0]))
+            delta_vy = np.sqrt(np.mean(np.square(self.source.vertices -
+                vertices_old)[:,:,1]))
+            delta_fluxes = np.sqrt(np.mean(np.square(self.source.fluxes -
+                                                     fluxes_old)))
+            deltas = np.array([delta_vx, delta_vy, delta_fluxes])
+            average_delta_param_history.append(deltas)
+            # check changes
+            if lnlike < ftol:
+                break
+            if np.any(deltas < xtol):
+                break
 
     # wrap to the source object
     def evaluate_psf(self):
