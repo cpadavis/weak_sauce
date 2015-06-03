@@ -26,8 +26,8 @@ class FlatFitter(Mover):
     def lnlike(self, vertices, fluxes):
         if self.tychonoffSigmaX != 0 and self.firstStepTaken :
             return -0.5 * np.sum(np.square(fluxes - self.true_fluxes)) \
-            -0.5 * np.sum(np.square(vertices[:,:,0] - self.original_vertices[:,:,0]))/(self.tychonoffSigmaX**2) \
-            -0.5 * np.sum(np.square(vertices[:,:,1] - self.original_vertices[:,:,1]))/(self.tychonoffSigmaY**2)
+            -0.5 * np.sum(np.power(vertices[:,:,0] - self.original_vertices[:,:,0],2))/(self.tychonoffSigmaX**2) \
+            -0.5 * np.sum(np.power(vertices[:,:,1] - self.original_vertices[:,:,1],2))/(self.tychonoffSigmaY**2)
         else:
             return -0.5 * np.sum(np.square(fluxes - self.true_fluxes))
 
@@ -36,8 +36,9 @@ class FlatFitter(Mover):
         lnlike = -0.5 * sum_ij((A_ij - L * Ahat_ij)^2)
         """
         luminosity = np.abs(self.luminosity)
-        x = vertices[:, :, 0]
-        y = vertices[:, :, 1]
+        #don't penalize likelihood if the whole grid just shifts --means observed to be ~10^-7, so shouldn't make a big difference
+        x = vertices[:, :, 0] - np.mean(vertices[:,:,0] - self.original_vertices[:,:,0])
+        y = vertices[:, :, 1] - np.mean(vertices[:,:,1] - self.original_vertices[:,:,1])
 
         # weight
         A = self.area(x, y)
@@ -75,7 +76,7 @@ class FlatFitter(Mover):
         dLdx[1:, 1:] += dA_ij__dx_ip1jp1 * w_ij
         dLdx[:-1, 1:] += dA_ij__dx_ijp1 * w_ij
         dLdx[1:, :-1] += dA_ij__dx_ip1j * w_ij
-        tychonoff_adjustmentX = -0.5*np.square(self.original_vertices[:,:,0]-x)/(self.tychonoffSigmaX**2)
+        tychonoff_adjustmentX = -0.5*np.abs(self.original_vertices[:,:,0]-x)/(self.tychonoffSigmaX**2)
         if self.verbose:
             print 'x adjustment is: ', tychonoff_adjustmentX
         dLdx += tychonoff_adjustmentX
@@ -85,7 +86,7 @@ class FlatFitter(Mover):
         dLdy[1:, 1:] += dA_ij__dy_ip1jp1 * w_ij
         dLdy[:-1, 1:] += dA_ij__dy_ijp1 * w_ij
         dLdy[1:, :-1] += dA_ij__dy_ip1j * w_ij
-        tychonoff_adjustmentY = -0.5*np.square(self.original_vertices[:,:,1]-y)/(self.tychonoffSigmaY**2)
+        tychonoff_adjustmentY = -0.5*np.abs(self.original_vertices[:,:,1]-y)/(self.tychonoffSigmaY**2)
         dLdy += tychonoff_adjustmentY
 
         dLdvertices = np.dstack((dLdx, dLdy))
