@@ -75,28 +75,28 @@ class MoveableGrid(object):
           self.step_cache[p] = self.step_cache[p] * decay_rate + (1.0 - decay_rate) * grads[p] ** 2
           dx = -(learning_rate * grads[p]) / np.sqrt(self.step_cache[p] + 1e-8)
         """
-        loss_history = []
-        average_delta_param_history = []
+        loss_history = [self.lnlike(**kwargs)]  # number, not object
+        average_relative_delta_param_history = []
         for it in xrange(maxiter):
             vertices_old = self.source.vertices.copy()
             fluxes_old = self.source.fluxes.copy()
-            lnlike_old = np.abs(self.lnlike(**kwargs).copy())
+            lnlike_old = loss_history[-1]
             self.step(**kwargs)
-            lnlike = np.abs(self.lnlike(**kwargs))
+            lnlike = self.lnlike(**kwargs)
             if verbose: print (lnlike)
             loss_history.append(lnlike)
 
-            delta_vx = np.sqrt(np.mean(np.square(self.source.vertices -
-                vertices_old)[:,:,0]))
-            delta_vy = np.sqrt(np.mean(np.square(self.source.vertices -
-                vertices_old)[:,:,1]))
-            delta_fluxes = np.sqrt(np.mean(np.square(self.source.fluxes -
-                                                     fluxes_old)))
+            delta_vx = np.sqrt(np.mean(np.square((self.source.vertices -
+                vertices_old) / self.source.vertices)[:,:,0]))
+            delta_vy = np.sqrt(np.mean(np.square((self.source.vertices -
+                vertices_old) / self.source.vertices)[:,:,1]))
+            delta_fluxes = np.sqrt(np.mean(np.square((self.source.fluxes -
+                fluxes_old) / self.source.fluxes)))
             deltas = np.array([delta_vx, delta_vy, delta_fluxes])
             if verbose: print (deltas)
-            average_delta_param_history.append(deltas)
+            average_relative_delta_param_history.append(deltas)
             # check changes
-            if np.abs(lnlike - lnlike_old)/lnlike < ftol:
+            if np.abs((lnlike - lnlike_old) / lnlike) < ftol:
                 print ('ftol reached')
                 break
             if np.any(deltas < xtol):
