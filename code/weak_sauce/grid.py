@@ -43,7 +43,7 @@ class MoveableGrid(object):
     def lnlike(self, **kwargs):
         raise NotImplementedError
 
-    def fit(self, xtol=0.0001, ftol=0.0001, maxiter=10000, maxfun=None,
+    def fit(self, xtol=0.0001, ftol=0.0001, maxiter=10000, maxfun=None,verbose=False,
             **kwargs):
         """
         ala scipy.optimize:
@@ -81,10 +81,9 @@ class MoveableGrid(object):
             vertices_old = self.source.vertices.copy()
             fluxes_old = self.source.fluxes.copy()
             lnlike_old = np.abs(self.lnlike(**kwargs).copy())
-            print fluxes_old
             self.step(**kwargs)
             lnlike = np.abs(self.lnlike(**kwargs))
-            print lnlike
+            if verbose: print (lnlike)
             loss_history.append(lnlike)
 
             delta_vx = np.sqrt(np.mean(np.square(self.source.vertices -
@@ -94,14 +93,14 @@ class MoveableGrid(object):
             delta_fluxes = np.sqrt(np.mean(np.square(self.source.fluxes -
                                                      fluxes_old)))
             deltas = np.array([delta_vx, delta_vy, delta_fluxes])
-            print deltas
+            if verbose: print (deltas)
             average_delta_param_history.append(deltas)
             # check changes
             if np.abs(lnlike - lnlike_old)/lnlike < ftol:
-                print 'ftol reached'
+                print ('ftol reached')
                 break
             if np.any(deltas < xtol):
-                print 'xtol reached'
+                print ('xtol reached')
                 break
 
     # wrap to the source object
