@@ -130,6 +130,9 @@ class Source(object):
 
         self.psf_evaluator = Moment_Evaluator()
 
+    def check_vertices(self):
+        return check_vertices(self.vertices)
+
     def update_centroids(self):
         # if you modify the vertices, you should update the centroids, too!
         self.centroids = vertex_centroids(self.vertices)
