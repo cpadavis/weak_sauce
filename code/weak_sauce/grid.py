@@ -62,14 +62,14 @@ class MoveableGrid(object):
         if update == 'sgd':
           dx = -learning_rate * grads[p]
         elif update == 'momentum':
-          if not p in self.step_cache: 
+          if not p in self.step_cache:
             self.step_cache[p] = np.zeros(grads[p].shape)
           dx = np.zeros_like(grads[p]) # you can remove this after
           dx = momentum * self.step_cache[p] - learning_rate * grads[p]
           self.step_cache[p] = dx
         elif update == 'rmsprop':
           decay_rate = 0.99 # you could also make this an option
-          if not p in self.step_cache: 
+          if not p in self.step_cache:
             self.step_cache[p] = np.zeros(grads[p].shape)
           dx = np.zeros_like(grads[p]) # you can remove this after
           self.step_cache[p] = self.step_cache[p] * decay_rate + (1.0 - decay_rate) * grads[p] ** 2
@@ -80,10 +80,11 @@ class MoveableGrid(object):
         for it in xrange(maxiter):
             vertices_old = self.source.vertices.copy()
             fluxes_old = self.source.fluxes.copy()
-
+            lnlike_old = np.abs(self.lnlike(**kwargs).copy())
+            print fluxes_old
             self.step(**kwargs)
-
             lnlike = np.abs(self.lnlike(**kwargs))
+            print lnlike
             loss_history.append(lnlike)
 
             delta_vx = np.sqrt(np.mean(np.square(self.source.vertices -
@@ -93,11 +94,14 @@ class MoveableGrid(object):
             delta_fluxes = np.sqrt(np.mean(np.square(self.source.fluxes -
                                                      fluxes_old)))
             deltas = np.array([delta_vx, delta_vy, delta_fluxes])
+            print deltas
             average_delta_param_history.append(deltas)
             # check changes
-            if lnlike < ftol:
+            if np.abs(lnlike - lnlike_old)/lnlike < ftol:
+                print 'ftol reached'
                 break
             if np.any(deltas < xtol):
+                print 'xtol reached'
                 break
 
     # wrap to the source object
@@ -116,4 +120,3 @@ class MoveableGrid(object):
 
     def plot_vertices(self, fig=None, ax=None):
         return self.plot_vertices.plot_naieve_grid(fig=fig, ax=ax)
-

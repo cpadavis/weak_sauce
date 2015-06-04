@@ -34,7 +34,7 @@ class FlatMover(UniformIlluminationMover):
     def __init__(self, true_fluxes, luminosity=1, step_size=1e-4, **kwargs):
         super(FlatMover, self).__init__(luminosity=luminosity, **kwargs)
         self.true_fluxes = true_fluxes
-        self.step_sze = step_size
+        self.step_size = step_size
 
     def lnlike(self, vertices, fluxes):
         return -0.5 * np.sum(np.square(fluxes - self.true_fluxes))
@@ -49,6 +49,7 @@ class FlatMover(UniformIlluminationMover):
 
         # weight
         A = self.area(vertices)
+        print 'areas are ', A
         w_ij = (self.true_fluxes - luminosity * np.abs(A)) * np.sign(A) * luminosity
 
         # each displacement
