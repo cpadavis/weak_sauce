@@ -49,7 +49,6 @@ class FlatMover(UniformIlluminationMover):
 
         # weight
         A = self.area(vertices)
-        print 'areas are ', A
         w_ij = (self.true_fluxes - luminosity * np.abs(A)) * np.sign(A) * luminosity
 
         # each displacement
@@ -123,3 +122,10 @@ class FlatMover(UniformIlluminationMover):
         #     vertices.shape), axis=1)
 
         return dvertices
+
+    def move_fluxes(self, vertices, fluxes, **kwargs):
+        # old move_fluxes adds a new flux with time (ie integrate over some time step)
+        # but here we are not changing time, but the actual area of pixels
+        # so we want the difference between the two
+        updated_fluxes = super(FlatMover, self).move_fluxes(vertices, fluxes, **kwargs)
+        return updated_fluxes - fluxes
