@@ -171,7 +171,7 @@ class Source(object):
             vmin = np.median(ZZ) + 1
             vmax = np.median(ZZ) + 2
             cmap.set_under(alpha=0)
-        elif midpoint <= 0:
+        elif midpoint <= 0 or midpoint >= 1:
             cmap = plt.cm.RdBu_r#plt.cm.Reds
         else:
             cmap = shiftedColorMap(plt.cm.RdBu_r, midpoint=midpoint)

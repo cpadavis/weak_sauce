@@ -5,6 +5,8 @@ TODO: Different types of movings
 TODO: Convergence Criteria (to be put into a moveable grid
 TODO: Keep track of relative changes?
 TODO: FlatFitter should be a moveable grid. The routine to create a step for moving the vertices can be a Mover still.
+
+TODO: Should the lnlike be wrt mean rms instead of sum? Would have to propogate it through the derivatives if so...
 """
 
 
@@ -18,7 +20,7 @@ class FlatFitter(MoveableGrid):
     def __init__(self, source, true_fluxes, luminosity=1, step_size=1e-4,
                  **kwargs):
         mover = FlatMover(true_fluxes=true_fluxes, luminosity=luminosity,
-                          step_size=step_size)
+                          step_size=step_size, **kwargs)
         super(FlatFitter, self).__init__(source=source, mover=mover, **kwargs)
 
     def lnlike(self):
@@ -31,13 +33,23 @@ class FlatMover(UniformIlluminationMover):
     This Mover takes true_fluxes and uses them to tell the source how to move.
     move_fluxes method based on UniformIlluminationMover
     """
-    def __init__(self, true_fluxes, luminosity=1, step_size=1e-4, **kwargs):
+    def __init__(self, true_fluxes, luminosity=1, step_size=1e-4, lamda=0, **kwargs):
         super(FlatMover, self).__init__(luminosity=luminosity, **kwargs)
         self.true_fluxes = true_fluxes
         self.step_size = step_size
 
+        # lamda == l2 regularization strength
+        self.lamda = lamda
+
     def lnlike(self, vertices, fluxes):
-        return -0.5 * np.sum(np.square(fluxes - self.true_fluxes))
+        base = -0.5 * np.sum(np.square(fluxes - self.true_fluxes))
+        x = vertices[:, :, 0]
+        y = vertices[:, :, 1]
+        # TODO: this could be instead self.x_orig instead of mean(x) or whatever...
+        # reg = -0.5 * self.lamda * np.sum(np.square(x - np.mean(x)) +
+        #                                  np.square(y - np.mean(y)))
+        reg = 0
+        return base + reg
 
     def derivatives(self, vertices, fluxes):
         """
@@ -90,11 +102,20 @@ class FlatMover(UniformIlluminationMover):
         dLdy[:-1, 1:] += dA_ij__dy_ijp1 * w_ij
         dLdy[1:, :-1] += dA_ij__dy_ip1j * w_ij
 
+        # regularization: not implimented!
+        # # correct dLdvertices by regularization
+        # # TODO: Check sign of this
+        # self.x_orig = property you give to the mover. it is the original grid
+        # you put in.
+        # dLdx += self.lamda * (x - self.x_orig)#np.mean(x))
+        # dLdy += self.lamda * (y - self.y_orig)#np.mean(y))
+
         dLdvertices = np.dstack((dLdx, dLdy))
 
         # # TODO: This normalization by sum of true fluxes cannot be correct
         # dLdluminosity = np.sum((self.true_fluxes - luminosity * np.abs(A)) *
         #                        np.abs(A)) / np.sum(self.true_fluxes)
+
 
         return dLdvertices
 
