@@ -4,6 +4,7 @@ In here goes the grid class.
 
 import numpy as np
 from weak_sauce.sources import check_vertices
+import pickle
 
 class MoveableGrid(object):
     """A mapper between two sets of grids -- say pixel and focal plane.
@@ -16,11 +17,27 @@ class MoveableGrid(object):
                  ideal grids are from the indices of the fluxes
     """
 
-    def __init__(self, source, mover, **kwargs):
-        self.source = source
+    def __init__(self, *args, **kwargs):
+        """
+        Instantiates a MoveableGrid in one of two ways:
 
-        # class objects with __call__ methods
-        self.mover = mover
+        1. __init__(pickle_name)
+            pickle_name: a string representing the filename of some pickle
+            created by MoveableGrid.saveto(pickle_name)
+        2. __init__(source,mover)
+            where source, mover have already been constructed.
+        """
+
+        if len(args) == 1:
+            temp = pickle.load(open(args[0]))
+            self.source = temp.source
+            self.mover  = temp.mover
+        elif len(args) == 2:
+            #check ordering--mover should have move method
+            assert hasattr(args[1],'move')
+            self.source = args[0]
+            self.mover  = args[1]
+        else: raise Exception('__init__ takes 1 or 2 arguments!')
 
     def move_vertices(self, **kwargs):
         # some method that modifies self.vertices
@@ -43,7 +60,7 @@ class MoveableGrid(object):
     def lnlike(self, **kwargs):
         raise NotImplementedError
 
-    def fit(self, xtol=1e-8, ftol=1e-6, maxiter=1e4, step_size=None,
+    def fit(self, xtol=1e-8, ftol=1e-6, maxiter=10000, step_size=None,
             maxfun=None, verbose=False, learning_rate_decay=0,
             **kwargs):
         """
@@ -81,6 +98,7 @@ class MoveableGrid(object):
         self.loss_history = [self.lnlike(**kwargs)]  # number, not object
         self.average_relative_delta_param_history = []
         for it in xrange(maxiter):
+            if verbose: print (it)
             vertices_old = self.source.vertices.copy()
             fluxes_old = self.source.fluxes.copy()
             lnlike_old = self.loss_history[-1]
@@ -100,7 +118,7 @@ class MoveableGrid(object):
             self.average_relative_delta_param_history.append(deltas)
 
 
-            if type(step_size) == type(None):
+            if type(step_size) != type(None):
                 step_size *= 1 - learning_rate_decay
 
             # check changes
@@ -129,3 +147,8 @@ class MoveableGrid(object):
 
     def plot_vertices(self, fig=None, ax=None):
         return self.plot_vertices.plot_naieve_grid(fig=fig, ax=ax)
+
+    def saveto(self,filename):
+        file = open(filename,'w')
+        pickle.dump(self,file)
+        return
