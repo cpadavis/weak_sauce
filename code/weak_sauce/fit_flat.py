@@ -21,7 +21,7 @@ class FlatFitter(MoveableGrid):
                  **kwargs):
         mover = FlatMover(true_fluxes=true_fluxes, luminosity=luminosity,
                           step_size=step_size, **kwargs)
-        super(FlatFitter, self).__init__(source=source, mover=mover, **kwargs)
+        super(FlatFitter, self).__init__(source, mover, **kwargs)
 
     def lnlike(self):
         return self.mover.lnlike(self.source.vertices, self.source.fluxes)

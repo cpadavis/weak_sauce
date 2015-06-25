@@ -81,7 +81,7 @@ class FixedIlluminationMover(StationaryMover):
     """
     Deposit some fixed but funny-shaped OTHER source
     """
-    def __init__(self, stationary_source):
+    def __init__(self, stationary_source, **kwargs):
         super(FixedIlluminationMover, self).__init__(**kwargs)
         self.stationary_source = stationary_source
         # self.centroids = self.stationary_source.centroids
