@@ -50,7 +50,7 @@ def fitIlluminationVariation(img, order=7):
     clf = LinearRegression()
     clf.fit(datamat,truth)
     predicted = clf.predict(datamat).reshape((img.shape[0], img.shape[1]))
-    return predicted
+    return predicted.astype(float)
 
 def makeCorr(img_to_use, rescale_cmap=True, N=5):
     img_to_use = img_to_use - np.mean(img_to_use)
