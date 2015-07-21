@@ -12,11 +12,13 @@ from weak_sauce.shifted_cmap import shiftedColorMap
 from weak_sauce.movers import UniformIlluminationMover
 from weak_sauce.sources import Source
 
-
 def mycrop(image,border):
     return image[border:image.shape[0]-border,border:image.shape[1]-border]
 
 def detrend(image):
+    import warnings
+    warnings.warn('use fitIlluminationVariation(); this is an outdated smoothing method', Warning)
+
     kernel = (1/273)*np.array([[1,4,7,4,1],
                 [4,16,26,16,4],
                 [7,26,41,26,7],
@@ -24,6 +26,31 @@ def detrend(image):
                 [1,4,7,4,1]])
     smoothed = sp.ndimage.convolve(image,kernel)
     return image-smoothed
+
+def fitIlluminationVariation(img, order=7):
+    """
+        returns 7th order polynomial fit ("predicted")
+        detrended = img - predicted
+    """
+    from sklearn.linear_model import LinearRegression
+    x = np.arange(img.shape[1])
+    y = np.arange(img.shape[0])
+    xx, yy = np.meshgrid(x,y)
+    xx = xx.flatten().astype('g') #astype np.longdoubles to avoid overflow
+    yy = yy.flatten().astype('g')
+
+    truth = img.flatten()
+
+    max_order=order
+    datamat = np.array([xx, yy],dtype='g').transpose()
+    current_order=1
+    while current_order < max_order:
+        datamat = np.hstack([datamat,xx[:,np.newaxis]**current_order, yy[:,np.newaxis]**current_order])
+        current_order += 1
+    clf = LinearRegression()
+    clf.fit(datamat,truth)
+    predicted = clf.predict(datamat).reshape((img.shape[0], img.shape[1]))
+    return predicted
 
 def makeCorr(img_to_use, rescale_cmap=True, N=5):
     img_to_use = img_to_use - np.mean(img_to_use)
@@ -59,14 +86,14 @@ def makeCorr(img_to_use, rescale_cmap=True, N=5):
     plt.title('Pixel-Neighbor Correlations')
     #eventually print text in pixels...
     #for x_val, y_val in zip(np.arange(11), np.arange(11)):
-    #    c = np.round(100*corr_arr[y_val,x_val],0) 
+    #    c = np.round(100*corr_arr[y_val,x_val],0)
     #    ax.text(y_val, x_val, c, va='center', ha='center')
     cbar = plt.colorbar()
     print np.round(100*corr_arr[N-2:N+3,N-2:N+3],1)
     #plt.figure()
     #tmp = plt.hist(img_to_use.flatten(),bins=20)
     return corr_arr
-    
+
 def neighborScatter(img):
     crop = np.zeros([img.shape[0]-2,img.shape[1]-2])
     vertSum = np.zeros([img.shape[0]-2,img.shape[1]-2])
@@ -98,23 +125,22 @@ def neighborScatter(img):
     print 'diag corr: ' + str(sp.stats.pearsonr(crop.flatten(),diagSum.flatten()))
 
 def moverFlatTestPlot(mover, title=None):
-    source = Source(num_x=15, min_x=-40, max_x=40, 
+    source = Source(num_x=15, min_x=-40, max_x=40,
                     num_y=15)
     # calculate uniform illumination flux
     UniformIlluminationMover()(source)
     old_mean_flux = source.fluxes.mean()
     source.fluxes -= old_mean_flux  # so that we have 0 flux initially
     mover(source)
-    
+
     # make the fluxes relative to old mean flux
     source.fluxes = (source.fluxes - old_mean_flux) / old_mean_flux
-    
+
     fig, ax = source.plot_vertices()
     ax.set_title('Vertices {0}'.format(title))
 
     fig, ax = source.plot_real_grid()
     ax.set_title('Real Coordinates {0}'.format(title))
-    
+
     fig, ax = source.plot_pixel_grid()
     ax.set_title('Pixel Coordinates {0}'.format(title))
-
