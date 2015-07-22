@@ -56,7 +56,10 @@ def init_grid(num_x=11, max_x=None, min_x=0,
         try:
             import galsim
         except ImportError:
-            print 'if your flux_func is not a function, you should install galsim and use galsim objects as flux_funcs!'
+            print 'Your flux_func is not a python function, and galsim is not installed! You should either:'
+            print '1. install galsim and use galsim objects as flux_funcs'
+            print '2. define your own flux_func as a python function'
+            raise
 
         if issubclass(type(flux_func),eval('galsim.GSObject')):
             fluxes = np.zeros((centroids.shape[0],centroids.shape[1]))
@@ -64,7 +67,7 @@ def init_grid(num_x=11, max_x=None, min_x=0,
                 for j in np.arange(centroids.shape[1]):
                     fluxes[i,j] = flux_func.xValue(centroids[i,j,0],centroids[i,j,1])
         else:
-            raise TypeError('youve got galsim imported, but your flux_func still wasnt a function or a galsim GSObject')
+            raise TypeError('youve got galsim installed, but your flux_func still wasnt a function or a galsim GSObject')
 
     return vertices, centroids, fluxes
 
