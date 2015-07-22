@@ -49,7 +49,22 @@ def init_grid(num_x=11, max_x=None, min_x=0,
     centroids = vertex_centroids(vertices)
 
     # create fluxes
-    fluxes = flux_func(centroids, **kwargs)
+    #check if input flux_func is a function without needing galsim
+    if type(flux_func) == type(np.sum):
+        fluxes = flux_func(centroids, **kwargs)
+    else:
+        try:
+            import galsim
+        except ImportError:
+            print 'if your flux_func is not a function, you should install galsim and use galsim objects as flux_funcs!'
+
+        if issubclass(type(flux_func),eval('galsim.GSObject')):
+            fluxes = np.zeros((centroids.shape[0],centroids.shape[1]))
+            for i in np.arange(centroids.shape[0]):
+                for j in np.arange(centroids.shape[1]):
+                    fluxes[i,j] = flux_func.xValue(centroids[i,j,0],centroids[i,j,1])
+        else:
+            raise TypeError('youve got galsim imported, but your flux_func still wasnt a function or a galsim GSObject')
 
     return vertices, centroids, fluxes
 
