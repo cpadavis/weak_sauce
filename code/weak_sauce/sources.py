@@ -171,7 +171,7 @@ class Source(object):
         Run sextractor on a numpy array (or weak_sauce source) to do photometry.
         """
         import sewpy, os
-        sew = sewpy.SEW(**kwargs)
+        sew = sewpy.SEW(params=params,config=config,sexpath=sexpath,**kwargs)
         from astropy.io import fits
         hdu = fits.PrimaryHDU(self.fluxes)
         hdulist = fits.HDUList([hdu])
