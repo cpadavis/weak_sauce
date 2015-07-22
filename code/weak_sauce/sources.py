@@ -165,13 +165,13 @@ class Source(object):
         # evaluate moments of fluxes image naievely in pixel coordinates
         return self.psf_evaluator(self.fluxes)
 
-    def evaluate_sex(self):
+    def evaluate_sex(self,params=["X_IMAGE", "Y_IMAGE", "FLUX_AUTO", "FLUX_ISO", "FLUX_ISOCOR", "FLAGS"],\
+            config={"DETECT_MINAREA":10, "PHOT_FLUXFRAC":"0.3, 0.5, 0.8"}, sexpath='/afs/slac/g/ki/software/local/bin/sex',**kwargs):
         """
         Run sextractor on a numpy array (or weak_sauce source) to do photometry.
         """
         import sewpy, os
-        sew = sewpy.SEW(params=["X_IMAGE", "Y_IMAGE", "FLUX_AUTO", "FLUX_ISO", "FLUX_ISOCOR", "FLAGS"],
-                config={"DETECT_MINAREA":10, "PHOT_FLUXFRAC":"0.3, 0.5, 0.8"}, sexpath='/afs/slac/g/ki/software/local/bin/sex')
+        sew = sewpy.SEW(**kwargs)
         from astropy.io import fits
         hdu = fits.PrimaryHDU(self.fluxes)
         hdulist = fits.HDUList([hdu])
