@@ -176,7 +176,7 @@ class Source(object):
         hdu = fits.PrimaryHDU(self.fluxes)
         hdulist = fits.HDUList([hdu])
         try:
-            hdulist.writeto('iamlame.fits')
+            hdulist.writeto('iamlame.fits',clobber=False)
         except IOError:
             print 'you already have a file called iamlame.fits in this directory--you should rename it and then seek help...'
             raise
