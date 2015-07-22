@@ -165,6 +165,25 @@ class Source(object):
         # evaluate moments of fluxes image naievely in pixel coordinates
         return self.psf_evaluator(self.fluxes)
 
+    def evaluate_sex(self):
+        """
+        Run sextractor on a numpy array (or weak_sauce source) to do photometry.
+        """
+        import sewpy, os
+        sew = sewpy.SEW(params=["X_IMAGE", "Y_IMAGE", "FLUX_AUTO", "FLUX_ISO", "FLUX_ISOCOR", "FLAGS"],
+                config={"DETECT_MINAREA":10, "PHOT_FLUXFRAC":"0.3, 0.5, 0.8"}, sexpath='/afs/slac/g/ki/software/local/bin/sex')
+        from astropy.io import fits
+        hdu = fits.PrimaryHDU(self.fluxes)
+        hdulist = fits.HDUList([hdu])
+        try:
+            hdulist.writeto('iamlame.fits')
+        except IOError:
+            print 'you already have a file called iamlame.fits in this directory--you should rename it and then seek help...'
+            raise
+        out = sew('iamlame.fits')
+        os.remove('iamlame.fits')
+        return out["table"] # this is an astropy table.
+
     def plot(self, ZZ, XX=None, YY=None, fig=None, ax=None,
              pcolormesh_kwargs_in={}):
 
