@@ -136,6 +136,9 @@ class MoveableGrid(object):
         # evaluate moments of fluxes image naievely.
         return self.source.evaluate_psf()
 
+    def evaluate_sex(self,**kwargs):
+        return self.source.evaluate_sex(**kwargs)
+
     def plot(self, **kwargs):
         return self.source.plot(**kwargs)
 

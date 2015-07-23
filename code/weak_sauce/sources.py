@@ -169,6 +169,12 @@ class Source(object):
             config={"DETECT_MINAREA":10, "PHOT_FLUXFRAC":"0.3, 0.5, 0.8"}, sexpath='/afs/slac/g/ki/software/local/bin/sex',**kwargs):
         """
         Run sextractor on a numpy array (or weak_sauce source) to do photometry.
+        Results returned in an astropy table.
+
+        params: list of sextractor outputs you want to write out
+        config: dict of input sextractor params (FILTER_NAME for non-default filter)
+        sexpath: path to sextractor executable (default is location on ki-ls)
+
         """
         import sewpy, os
         sew = sewpy.SEW(params=params,config=config,sexpath=sexpath,**kwargs)
