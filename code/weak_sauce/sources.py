@@ -166,7 +166,7 @@ class Source(object):
         return self.psf_evaluator(self.fluxes)
 
     def evaluate_sex(self,params=["X_IMAGE", "Y_IMAGE", "FLUX_AUTO", "FLUX_ISO", "FLUX_ISOCOR", "FLAGS"],\
-            config={"DETECT_MINAREA":10, "PHOT_FLUXFRAC":"0.3, 0.5, 0.8"}, sexpath='/afs/slac/g/ki/software/local/bin/sex',**kwargs):
+            config={"DETECT_MINAREA":4, "PHOT_FLUXFRAC":"0.3, 0.5, 0.8"}, sexpath='/afs/slac/g/ki/software/local/bin/sex',**kwargs):
         """
         Run sextractor on a numpy array (or weak_sauce source) to do photometry.
         Results returned in an astropy table.
@@ -182,12 +182,12 @@ class Source(object):
         hdu = fits.PrimaryHDU(self.fluxes)
         hdulist = fits.HDUList([hdu])
         try:
-            hdulist.writeto('iamlame.fits',clobber=False)
+            hdulist.writeto('/scratch/iamlame.fits',clobber=False)
         except IOError:
             print 'you already have a file called iamlame.fits in this directory--you should rename it and then seek help...'
             raise
-        out = sew('iamlame.fits')
-        os.remove('iamlame.fits')
+        out = sew('/scratch/iamlame.fits')
+        os.remove('/scratch/iamlame.fits')
         return out["table"] # this is an astropy table.
 
     def plot(self, ZZ, XX=None, YY=None, fig=None, ax=None,
