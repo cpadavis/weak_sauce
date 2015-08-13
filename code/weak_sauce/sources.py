@@ -33,8 +33,10 @@ def init_grid(num_x=11, max_x=None, min_x=0,
         # default to square grid
         num_y = num_x
     if type(max_y) == type(None):
-        # default to max_x
-        max_y = max_x
+        ## # default to max_x
+        ## max_y = max_x
+        # initialize to have square pixels by default
+        max_y = num_y - 1
     if type(min_y) == type(None):
         # default to min_x (which defaults to 0)
         min_y = min_x
