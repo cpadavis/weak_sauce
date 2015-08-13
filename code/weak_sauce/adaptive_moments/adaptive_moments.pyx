@@ -198,6 +198,7 @@ def adaptive_moments(data,
     guess_sig = 3.0,
     bound_correct_wt = 0.25,  # Maximum shift in centroids and sigma between
                              # iterations for adaptive moments.
+    guess_centroid = None
     num_iter = 0,
     num_iter_max = 100,
     **kwargs
@@ -207,8 +208,12 @@ def adaptive_moments(data,
     # never triggered; in this case we have at least *something* defined to
     # divide by, and for which the output will fairly clearly be junk.
     Amp = -1000.
-    Mx = data.shape[1] / 2.
-    My = data.shape[0] / 2.
+    if type(guess_centroid) == None:
+        Mx = data.shape[1] / 2.
+        My = data.shape[0] / 2.
+    else:
+        Mx = guess_centroid[0]
+        My = guess_centroid[1]
     Mxx = guess_sig ** 2
     Mxy = 0
     Myy = guess_sig ** 2
@@ -729,4 +734,3 @@ def convert_moments(data, **args):
                           var_delta1=var_delta1, var_delta2=var_delta2,))
 
     return poles
-
