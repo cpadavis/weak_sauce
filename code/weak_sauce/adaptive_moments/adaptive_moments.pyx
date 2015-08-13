@@ -198,7 +198,7 @@ def adaptive_moments(data,
     guess_sig = 3.0,
     bound_correct_wt = 0.25,  # Maximum shift in centroids and sigma between
                              # iterations for adaptive moments.
-    guess_centroid = None
+    guess_centroid = None,
     num_iter = 0,
     num_iter_max = 100,
     **kwargs
@@ -208,7 +208,7 @@ def adaptive_moments(data,
     # never triggered; in this case we have at least *something* defined to
     # divide by, and for which the output will fairly clearly be junk.
     Amp = -1000.
-    if type(guess_centroid) == None:
+    if type(guess_centroid) == type(None):
         Mx = data.shape[1] / 2.
         My = data.shape[0] / 2.
     else:
