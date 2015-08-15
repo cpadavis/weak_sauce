@@ -100,6 +100,19 @@ class FixedIlluminationMover(StationaryMover):
         dfluxes = deposit(self.fluxes, self.pixel_coordinates(vertices))
         return dfluxes
 
+# TODO: Add FixedIlluminationMover method for r2d.skim as well!
+# verts = source_deposit.vertices.copy()
+# # convert verts into pixel coordinates
+# verts = (verts - stationary_source.r0) / (stationary_source.r1 - stationary_source.r0)
+# dfluxes = skim(source_deposit.fluxes, verts)
+# # add fluxes at the right locations
+# x = verts[:, :, 0]
+# y = verts[:, :, 1]
+# xmax_all = int(x.max())
+# xmin_all = int(x.min())
+# ymax_all = int(y.max())
+# ymin_all = int(y.min())
+# stationary_source.fluxes[xmin_all:xmax_all+1, ymin_all:ymax_all+1] = dfluxes
 
 class UniformIlluminationMover(StationaryMover):
     """
