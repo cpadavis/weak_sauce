@@ -266,27 +266,27 @@ def skim(source_array, vertices):
                                        vertices_ij, [i,j],
                                        (xmin, ymin, xmax, ymax))
             A_ij = A[i, j]#xmin:xmax + 1, ymin:ymax + 1]
-            if ((j == 5 and i == 5) or
-                (j == 5 and i == 4)):
-                print(i, j)
-                print(overlap_ij.shape)
-                print((xmin, xmax), (ymin, ymax))
-                print((xmin_all, xmax_all), (ymin_all, ymax_all))
-                print((xmax + 1 - xmin), (ymax + 1 - ymin))
-                print(vertices_ij)
-                print(vertices_ij_floored)
-                print(fluxes.shape)
-                # print(overlap_ij)
-                # print(A_ij)
-                # print(overlap_ij / A_ij)
-                # print(dest_window)
-                # print(source_ij)
-                # print(vertices_ij_floored)
-                # print(vertices_ij)
-                # print(xmin, ymin, xmax, ymax)
-                # print(vertices.shape, source_array.shape)
-                # print(overlap_ij.shape, source_ij.shape)
-                print('\n')
+            # if ((j == 5 and i == 5) or
+            #     (j == 5 and i == 4)):
+            #     print(i, j)
+            #     print(overlap_ij.shape)
+            #     print((xmin, xmax), (ymin, ymax))
+            #     print((xmin_all, xmax_all), (ymin_all, ymax_all))
+            #     print((xmax + 1 - xmin), (ymax + 1 - ymin))
+            #     print(vertices_ij)
+            #     print(vertices_ij_floored)
+            #     print(fluxes.shape)
+            #     # print(overlap_ij)
+            #     # print(A_ij)
+            #     # print(overlap_ij / A_ij)
+            #     # print(dest_window)
+            #     # print(source_ij)
+            #     # print(vertices_ij_floored)
+            #     # print(vertices_ij)
+            #     # print(xmin, ymin, xmax, ymax)
+            #     # print(vertices.shape, source_array.shape)
+            #     # print(overlap_ij.shape, source_ij.shape)
+            #     print('\n')
             fluxes[xmin : xmax + 1, ymin : ymax + 1] += overlap_ij * source_ij / A_ij
 
     return fluxes
