@@ -79,7 +79,7 @@ class StationaryMover(Mover):
 
 class FixedIlluminationMover(StationaryMover):
     """
-    Deposit some fixed but funny-shaped OTHER source
+    Deposit grid onto funny vertices.
     """
     def __init__(self, stationary_source, **kwargs):
         super(FixedIlluminationMover, self).__init__(**kwargs)
@@ -97,8 +97,29 @@ class FixedIlluminationMover(StationaryMover):
         return (vertices - self.r0) / (self.r1 - self.r0)
 
     def move_fluxes(self, vertices, fluxes, **kwargs):
+        return self.deposit_fluxes(vertices, fluxes, **kwargs)
+
+    def deposit_fluxes(self, vertices, fluxes, **kwargs):
+        # take our regular fluxes grid and deposit onto irregular vertices
         dfluxes = deposit(self.fluxes, self.pixel_coordinates(vertices))
         return dfluxes
+
+    def skim_fluxes(self, vertices, fluxes, **kwargs):
+        # take irregular fluxes of source and return grid in our fluxes
+        pixel_verts = self.pixel_coordinates(vertices)
+        dfluxes_partial = skim(fluxes, pixel_verts)
+        # put dfluxes in same grid as mover's fluxes
+        x = pixel_verts[:, :, 0]
+        y = pixel_verts[:, :, 1]
+        xmax_all = int(x.max())
+        xmin_all = int(x.min())
+        ymax_all = int(y.max())
+        ymin_all = int(y.min())
+        dfluxes = np.zeros(self.fluxes.shape)
+        dfluxes[xmin_all:xmax_all+1, ymin_all:ymax_all+1] = dfluxes_partial
+        return dfluxes
+
+
 
 # TODO: Add FixedIlluminationMover method for r2d.skim as well!
 # verts = source_deposit.vertices.copy()
