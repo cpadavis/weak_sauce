@@ -42,6 +42,7 @@ class Moment_Evaluator(PSF_Evaluator):
             guess_sig = 3.0,
             bound_correct_wt = 0.25,  # Maximum shift in centroids and sigma
                                       # between iterations for adaptive moments.
+            guess_centroid = None,
             num_iter = 0,
             num_iter_max = 100)
         self.adaptive_moments_kwargs.update(kwargs)
@@ -85,4 +86,3 @@ class Moment_Evaluator(PSF_Evaluator):
             evaluated_psfs.append(self.evaluate_one_psf(psf))
         evaluated_psfs = DataFrame(evaluated_psfs)
         return evaluated_psfs
-
