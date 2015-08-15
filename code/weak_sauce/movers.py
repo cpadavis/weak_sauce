@@ -7,7 +7,7 @@ TODO: Make sure all move methods are now differences, instead of total moves
 
 import numpy as np
 
-from weak_sauce.r2d import deposit
+from weak_sauce.r2d import deposit, skim
 
 class Mover(object):
     """
