@@ -142,8 +142,8 @@ class MoveableGrid(object):
     def plot(self, **kwargs):
         return self.source.plot(**kwargs)
 
-    def plot_real_grid(self, fig=None, ax=None):
-        return self.source.plot_real_grid(fig=fig, ax=ax)
+    def plot_real_grid(self, fig=None, ax=None, pcolormesh_kwargs_in={}):
+        return self.source.plot_real_grid(fig=fig, ax=ax, pcolormesh_kwargs_in=pcolormesh_kwargs_in)
 
     def plot_pixel_grid(self, fig=None, ax=None):
         return self.source.plot_naieve_grid(fig=fig, ax=ax)

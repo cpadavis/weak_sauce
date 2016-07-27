@@ -238,12 +238,12 @@ class Source(object):
 
         return fig, ax
 
-    def plot_real_grid(self, fig=None, ax=None):
+    def plot_real_grid(self, fig=None, ax=None, pcolormesh_kwargs_in={}):
         # use vertices
         XX = self.vertices[:, :, 0]
         YY = self.vertices[:, :, 1]
         ZZ = self.fluxes
-        fig, ax = self.plot(ZZ, XX, YY, fig=fig, ax=ax)
+        fig, ax = self.plot(ZZ, XX, YY, fig=fig, ax=ax, pcolormesh_kwargs_in=pcolormesh_kwargs_in)
         return fig, ax
 
     def plot_pixel_grid(self, fig=None, ax=None):

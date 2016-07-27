@@ -11,6 +11,7 @@ from weak_sauce.movers import UniformIlluminationMover
 from weak_sauce.shifted_cmap import shiftedColorMap
 from weak_sauce.movers import UniformIlluminationMover
 from weak_sauce.sources import Source
+from sklearn.preprocessing import Imputer
 
 def mycrop(image,border):
     return image[border:image.shape[0]-border,border:image.shape[1]-border]
@@ -29,8 +30,8 @@ def detrend(image):
 
 def fitIlluminationVariation(img, order=7):
     """
-        returns 7th order polynomial fit ("predicted")
-        detrended = img - predicted
+    returns 7th order polynomial fit ("predicted")
+    detrended = img - predicted
     """
     from sklearn.linear_model import LinearRegression
     x = np.arange(img.shape[1])
@@ -52,6 +53,43 @@ def fitIlluminationVariation(img, order=7):
     predicted = clf.predict(datamat).reshape((img.shape[0], img.shape[1]))
     return predicted.astype(float)
 
+    """
+    #this is a new way I stupidly fiddled with outside of git...
+    def fitIlluminationVariation(img, order=7):
+    """
+    #    returns 7th order polynomial fit ("predicted")
+    #    detrended = img - predicted
+    """
+    from sklearn.linear_model import LinearRegression
+    x = np.arange(img.shape[0])
+    y = np.arange(img.shape[1])
+    xx, yy = np.meshgrid(x,y)
+    #xx = np.ma.masked_array(xx,img.mask)
+    #yy = np.ma.masked_array(yy,img.mask)
+    #print type(xx)
+    xx = xx.flatten().astype('g') #astype np.longdoubles to avoid overflow
+    yy = yy.flatten().astype('g')
+
+    mad = np.median(np.abs(img-np.median(img)))
+    med = np.median(img)
+    mask = (img < med-5*mad) | (img > med+5*mad)
+    img[mask] = 1e9
+    bpm_fix = Imputer(missing_values=1e9,strategy='median',axis=1)
+    img = bpm_fix.fit_transform(img)
+    truth = img.flatten()
+
+    max_order=order
+    datamat = np.array([xx, yy],dtype='g').transpose()
+    current_order=2
+    while current_order <= max_order:
+        datamat = np.hstack([datamat,xx[:,np.newaxis]**current_order, yy[:,np.newaxis]**current_order])
+        current_order += 1
+    clf = LinearRegression()
+    clf.fit(datamat,truth)
+    predicted = clf.predict(datamat).reshape((img.shape[0], img.shape[1]))
+    return predicted.astype(float)
+    """
+
 def makeCorr(img_to_use, rescale_cmap=True, N=5):
     img_to_use = img_to_use - np.mean(img_to_use)
     corr_arr = np.zeros((N * 2 + 1, N * 2 + 1))
@@ -66,6 +104,8 @@ def makeCorr(img_to_use, rescale_cmap=True, N=5):
     c = 0
     midpoint = (c - a) / (b - a)
     if rescale_cmap:
+        print datamat.shape, img.shape
+        print datamat.shape, img.shape
         cmap = shiftedColorMap(plt.cm.RdBu_r,midpoint=midpoint)
         vmin=a
         vmax=b
