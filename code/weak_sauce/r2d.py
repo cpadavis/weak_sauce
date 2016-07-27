@@ -110,7 +110,8 @@ def overlap_pixel(vertices, dest_window, verts_test, ij, bounds):
     info2 = r2d.r2d_set_dest_grid(ctypes.pointer(dest_grid_c), dest_dims_c,
                                   dest_window_c)
     r2d.r2d_rasterize_quad.restype = r2d_info
-    r2d.r2d_rasterize_quad.argtypes = [r2d_real, (r2d_plane * 4), (r2d_dvec2 * 2)]
+    r2d.r2d_rasterize_quad.argtypes = [r2d_real, (r2d_plane * 4),
+                                      (r2d_dvec2 * 2)]
     info3 = r2d.r2d_rasterize_quad(r2d_real(1.0), faces, ibounds)
 
     r2d.r2d_finalize()
@@ -145,7 +146,10 @@ def overlap_pixel(vertices, dest_window, verts_test, ij, bounds):
     return dest_grid
 
 def deposit(source_array, vertices):
-    # vertices are in units of pixels on the source grid
+    # deposit regular grid onto irregular grid
+    # vertices are in units of pixels on the regular source grid
+    # which is to say (x,y) = (0,0) corresponds to corner of fluxes[0,0]
+    # and (x,y) = (1,1) corresponds to opposite corner of fluxes[0,0]
     x = vertices[:, :, 0]
     y = vertices[:, :, 1]
     Nx, Ny = np.array(vertices.shape[:2]) - 1
@@ -175,8 +179,11 @@ def deposit(source_array, vertices):
             if ymax >= source_array.shape[1]:
                 ymax = source_array.shape[1] - 1
             source_ij = source_array[xmin:xmax + 1, ymin:ymax + 1]
-            dest_window = [xmax-xmin + 1, ymax-ymin + 1]
-            overlap_ij = overlap_pixel(vertices_ij_floored, dest_window, vertices_ij, [i,j], get_box_index_bounds(vertices_ij))
+            dest_window = np.array([xmax-xmin + 1, ymax-ymin + 1])
+            dest_window = np.where(dest_window > 0, dest_window, 0)
+            overlap_ij = overlap_pixel(vertices_ij_floored, dest_window,
+                                       vertices_ij, [i,j],
+                                       get_box_index_bounds(vertices_ij))
             # if j == 6:
             #     # import ipdb; ipdb.set_trace()
             if np.any(np.array(overlap_ij.shape) != np.array(source_ij.shape)):
@@ -189,6 +196,98 @@ def deposit(source_array, vertices):
                 print(vertices.shape, source_array.shape)
                 print(overlap_ij.shape, source_ij.shape)
             fluxes[i, j] += np.sum(overlap_ij * source_ij)
+
+    return fluxes
+
+def skim(source_array, vertices):
+    # TODO: I should be able to do this for the entire grid at once in the C
+    #       program, not pixel by pixel
+    # deposit irregular grid onto regular grid
+    # vertices are in units of pixels on the regular grid
+    # which is to say (x,y) = (0,0) corresponds to corner of fluxes[0,0]
+    # and (x,y) = (1,1) corresponds to opposite corner of fluxes[0,0]
+    # key difference here is that now we divide by area of irregular pixel
+
+    x = vertices[:, :, 0]
+    y = vertices[:, :, 1]
+    Nx, Ny = np.array(vertices.shape[:2]) - 1
+    if x.min() < 0:
+        print('Warning! x coordinate less than 0 in skimmed grid!')
+    if y.min() < 0:
+        print('Warning! y coordinate less than 0 in skimmed grid!')
+
+    # final fluxes
+    xmax_all = int(x.max())
+    xmin_all = int(x.min())
+    ymax_all = int(y.max())
+    ymin_all = int(y.min())
+    fluxes = np.zeros((xmax_all - xmin_all + 1, ymax_all - ymin_all + 1))
+    # fluxes = np.zeros((int(x.max()) + 1, int(y.max()) + 1))
+
+    # unsigned areas of irregular pixels
+    A = ((x[:-1, :-1] - x[1:, 1:]) *
+         (y[:-1, 1:] -  y[1:, :-1]) -
+         (x[:-1, 1:] -  x[1:, :-1]) *
+         (y[:-1, :-1] - y[1:, 1:])) * 0.5
+    A = np.abs(A)
+
+    # check that the vertices are within the source_array limits
+    Sx, Sy = np.array(source_array.shape) + 1
+
+    for i in xrange(Nx):
+        for j in xrange(Ny):
+
+            vertices_ij = np.array([[x[i, j], y[i, j]],
+                                    [x[i + 1, j], y[i + 1, j]],
+                                    [x[i + 1, j + 1], y[i + 1, j + 1]],
+                                    [x[i, j + 1], y[i, j + 1]],
+                                    ])
+
+            vertices_ij_floored = vertices_ij - np.floor(np.min(vertices_ij,
+                                                                axis=0))
+            xmin, ymin, xmax, ymax = get_box_index_bounds(vertices_ij)
+            # apply x_min_all transformation
+            xmin -= xmin_all
+            xmax -= xmin_all
+            ymin -= ymin_all
+            ymax -= ymin_all
+            if xmin < 0:
+                xmin = 0
+            if ymin < 0:
+                ymin = 0
+            if xmax >= fluxes.shape[0]:
+                xmax = fluxes.shape[0] - 1
+            if ymax >= fluxes.shape[1]:
+                ymax = fluxes.shape[1] - 1
+            source_ij = source_array[i, j]#xmin:xmax + 1, ymin:ymax + 1]
+            dest_window = np.array([xmax-xmin + 1, ymax-ymin + 1])
+            dest_window = np.where(dest_window > 0, dest_window, 0)
+            overlap_ij = overlap_pixel(vertices_ij_floored, dest_window,
+                                       vertices_ij, [i,j],
+                                       (xmin, ymin, xmax, ymax))
+            A_ij = A[i, j]#xmin:xmax + 1, ymin:ymax + 1]
+            # if ((j == 5 and i == 5) or
+            #     (j == 5 and i == 4)):
+            #     print(i, j)
+            #     print(overlap_ij.shape)
+            #     print((xmin, xmax), (ymin, ymax))
+            #     print((xmin_all, xmax_all), (ymin_all, ymax_all))
+            #     print((xmax + 1 - xmin), (ymax + 1 - ymin))
+            #     print(vertices_ij)
+            #     print(vertices_ij_floored)
+            #     print(fluxes.shape)
+            #     # print(overlap_ij)
+            #     # print(A_ij)
+            #     # print(overlap_ij / A_ij)
+            #     # print(dest_window)
+            #     # print(source_ij)
+            #     # print(vertices_ij_floored)
+            #     # print(vertices_ij)
+            #     # print(xmin, ymin, xmax, ymax)
+            #     # print(vertices.shape, source_array.shape)
+            #     # print(overlap_ij.shape, source_ij.shape)
+            #     print('\n')
+            fluxes[xmin : xmax + 1, ymin : ymax + 1] += overlap_ij * source_ij / A_ij
 
     return fluxes
 
