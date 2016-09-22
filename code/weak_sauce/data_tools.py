@@ -104,8 +104,8 @@ def makeCorr(img_to_use, rescale_cmap=True, N=5):
     c = 0
     midpoint = (c - a) / (b - a)
     if rescale_cmap:
-        print datamat.shape, img.shape
-        print datamat.shape, img.shape
+        #print datamat.shape, img.shape
+        #print datamat.shape, img.shape
         cmap = shiftedColorMap(plt.cm.RdBu_r,midpoint=midpoint)
         vmin=a
         vmax=b
