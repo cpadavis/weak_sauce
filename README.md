@@ -2,7 +2,7 @@
 
 ## Summary
 
-This package, described in detail in [Baumer, et al. 2017](), provides methods to fit models of distorted pixel grids to flat-field data, and compute their corresponding systematic impacts. For examples of how the code can be used, see the included [demo notebook]().
+This package, described in detail in [Baumer, et al. 2017](), provides methods to fit models of distorted pixel grids to flat-field data, and compute their corresponding systematic impacts. For examples of how the code can be used, see the included [demo notebook](https://github.com/cpadavis/weak_sauce/blob/master/notebooks/demo.ipynb).
 
 ## Installation
 
