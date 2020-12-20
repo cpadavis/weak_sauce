@@ -3,8 +3,8 @@ In here goes the grid class.
 """
 
 import numpy as np
-from weak_sauce.sources import check_vertices
 import pickle
+
 
 class MoveableGrid(object):
     """A mapper between two sets of grids -- say pixel and focal plane.
@@ -31,18 +31,20 @@ class MoveableGrid(object):
         if len(args) == 1:
             temp = pickle.load(open(args[0]))
             self.source = temp.source
-            self.mover  = temp.mover
+            self.mover = temp.mover
         elif len(args) == 2:
-            #check ordering--mover should have move method
-            assert hasattr(args[1],'move')
+            # check ordering--mover should have move method
+            assert hasattr(args[1], "move")
             self.source = args[0]
-            self.mover  = args[1]
-        else: raise Exception('__init__ takes 1 or 2 arguments!')
+            self.mover = args[1]
+        else:
+            raise Exception("__init__ takes 1 or 2 arguments!")
 
     def move_vertices(self, **kwargs):
         # some method that modifies self.vertices
         self.source.vertices += self.mover.move_vertices(
-                self.source.vertices, self.source.fluxes, **kwargs)
+            self.source.vertices, self.source.fluxes, **kwargs
+        )
 
     def move_fluxes(self, **kwargs):
         # some method that updates fluxes. This can depend on the vertices
@@ -50,7 +52,8 @@ class MoveableGrid(object):
         # This basically calls self.source function and adds it to the
         # fluxes
         self.source.fluxes += self.mover.move_fluxes(
-                self.source.vertices, self.source.fluxes, **kwargs)
+            self.source.vertices, self.source.fluxes, **kwargs
+        )
 
     def step(self, **kwargs):
         # self.update_fluxes(**kwargs)
@@ -60,9 +63,17 @@ class MoveableGrid(object):
     def lnlike(self, **kwargs):
         raise NotImplementedError
 
-    def fit(self, xtol=1e-8, ftol=1e-6, maxiter=10000, step_size=None,
-            maxfun=None, verbose=False, learning_rate_decay=0,
-            **kwargs):
+    def fit(
+        self,
+        xtol=1e-8,
+        ftol=1e-6,
+        maxiter=10000,
+        step_size=None,
+        maxfun=None,
+        verbose=False,
+        learning_rate_decay=0,
+        **kwargs
+    ):
         """
         ala scipy.optimize:
         xtol : float, optional
@@ -97,38 +108,53 @@ class MoveableGrid(object):
         """
         self.loss_history = [self.lnlike(**kwargs)]  # number, not object
         self.average_relative_delta_param_history = []
-        for it in xrange(maxiter):
-            if verbose: print (it)
+        for it in range(maxiter):
+            if verbose:
+                print(it)
             vertices_old = self.source.vertices.copy()
             fluxes_old = self.source.fluxes.copy()
             lnlike_old = self.loss_history[-1]
             self.step(step_size=step_size, **kwargs)
             lnlike = self.lnlike(**kwargs)
-            if verbose: print (lnlike)
+            if verbose:
+                print(lnlike)
             self.loss_history.append(lnlike)
 
-            delta_vx = np.sqrt(np.mean(np.square((self.source.vertices -
-                vertices_old) / self.source.vertices)[:,:,0]))
-            delta_vy = np.sqrt(np.mean(np.square((self.source.vertices -
-                vertices_old) / self.source.vertices)[:,:,1]))
-            delta_fluxes = np.sqrt(np.mean(np.square((self.source.fluxes -
-                fluxes_old) / self.source.fluxes)))
+            delta_vx = np.sqrt(
+                np.mean(
+                    np.square(
+                        (self.source.vertices - vertices_old) / self.source.vertices
+                    )[:, :, 0]
+                )
+            )
+            delta_vy = np.sqrt(
+                np.mean(
+                    np.square(
+                        (self.source.vertices - vertices_old) / self.source.vertices
+                    )[:, :, 1]
+                )
+            )
+            delta_fluxes = np.sqrt(
+                np.mean(
+                    np.square((self.source.fluxes - fluxes_old) / self.source.fluxes)
+                )
+            )
             deltas = np.array([delta_vx, delta_vy, delta_fluxes])
-            if verbose: print (deltas)
+            if verbose:
+                print(deltas)
             self.average_relative_delta_param_history.append(deltas)
-
 
             if type(step_size) != type(None):
                 step_size *= 1 - learning_rate_decay
 
             # check changes
             if np.abs((lnlike - lnlike_old) / lnlike) < ftol:
-                print ('ftol reached')
+                print("ftol reached")
                 return
             if np.all(deltas < xtol):
-                print ('xtol reached')
+                print("xtol reached")
                 return
-        print('maxiter reached')
+        print("maxiter reached")
         return
 
     # wrap to the source object
@@ -136,14 +162,16 @@ class MoveableGrid(object):
         # evaluate moments of fluxes image naievely.
         return self.source.evaluate_psf()
 
-    def evaluate_sex(self,**kwargs):
+    def evaluate_sex(self, **kwargs):
         return self.source.evaluate_sex(**kwargs)
 
     def plot(self, **kwargs):
         return self.source.plot(**kwargs)
 
     def plot_real_grid(self, fig=None, ax=None, pcolormesh_kwargs_in={}):
-        return self.source.plot_real_grid(fig=fig, ax=ax, pcolormesh_kwargs_in=pcolormesh_kwargs_in)
+        return self.source.plot_real_grid(
+            fig=fig, ax=ax, pcolormesh_kwargs_in=pcolormesh_kwargs_in
+        )
 
     def plot_pixel_grid(self, fig=None, ax=None):
         return self.source.plot_naieve_grid(fig=fig, ax=ax)
@@ -151,7 +179,7 @@ class MoveableGrid(object):
     def plot_vertices(self, fig=None, ax=None):
         return self.plot_vertices.plot_naieve_grid(fig=fig, ax=ax)
 
-    def saveto(self,filename):
-        file = open(filename,'w')
-        pickle.dump(self,file)
+    def saveto(self, filename):
+        file = open(filename, "w")
+        pickle.dump(self, file)
         return

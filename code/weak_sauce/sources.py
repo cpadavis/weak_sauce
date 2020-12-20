@@ -13,14 +13,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from weak_sauce.shifted_cmap import shiftedColorMap
-from weak_sauce.adaptive_moments.psf_evaluator import Moment_Evaluator
+from adaptive_moments.psf_evaluator import Moment_Evaluator
+
 
 def zero_flux_func(vertices, **kwargs):
     return np.zeros(np.array(vertices.shape[:2]))
 
-def init_grid(num_x=11, max_x=None, min_x=0,
-              num_y=None, max_y=None, min_y=None,
-              flux_func=zero_flux_func, **kwargs):
+
+def init_grid(
+    num_x=11,
+    max_x=None,
+    min_x=0,
+    num_y=None,
+    max_y=None,
+    min_y=None,
+    flux_func=zero_flux_func,
+    **kwargs
+):
     """
     z[i, j] returns x_ij, y_ij
     f[i, j] returns f_ij
@@ -42,36 +51,46 @@ def init_grid(num_x=11, max_x=None, min_x=0,
         min_y = min_x
 
     # create grid. Grid is [x,y] ordered!!!!!
-    vertices = np.dstack(np.meshgrid(
-        np.linspace(min_x, max_x, num_x, endpoint=True),
-        np.linspace(min_y, max_y, num_y, endpoint=True),
-        indexing='ij'))
+    vertices = np.dstack(
+        np.meshgrid(
+            np.linspace(min_x, max_x, num_x, endpoint=True),
+            np.linspace(min_y, max_y, num_y, endpoint=True),
+            indexing="ij",
+        )
+    )
 
     # create centroids
     centroids = vertex_centroids(vertices)
 
     # create fluxes
-    #check if input flux_func is a function without needing galsim
+    # check if input flux_func is a function without needing galsim
     if type(flux_func) == type(np.sum):
         fluxes = flux_func(centroids, **kwargs)
     else:
         try:
             import galsim
         except ImportError:
-            print 'Your flux_func is not a python function, and galsim is not installed! You should either:'
-            print '1. install galsim and use galsim objects as flux_funcs'
-            print '2. define your own flux_func as a python function'
+            print(
+                "Your flux_func is not a python function, and galsim is not installed! You should either:"
+            )
+            print("1. install galsim and use galsim objects as flux_funcs")
+            print("2. define your own flux_func as a python function")
             raise
 
-        if issubclass(type(flux_func),eval('galsim.GSObject')):
-            fluxes = np.zeros((centroids.shape[0],centroids.shape[1]))
+        if issubclass(type(flux_func), eval("galsim.GSObject")):
+            fluxes = np.zeros((centroids.shape[0], centroids.shape[1]))
             for i in np.arange(centroids.shape[0]):
                 for j in np.arange(centroids.shape[1]):
-                    fluxes[i,j] = flux_func.xValue(centroids[i,j,0],centroids[i,j,1])
+                    fluxes[i, j] = flux_func.xValue(
+                        centroids[i, j, 0], centroids[i, j, 1]
+                    )
         else:
-            raise TypeError('youve got galsim installed, but your flux_func still wasnt a function or a galsim GSObject')
+            raise TypeError(
+                "youve got galsim installed, but your flux_func still wasnt a function or a galsim GSObject"
+            )
 
     return vertices, centroids, fluxes
+
 
 def vertex_centroids(vertices):
     # this way we can have an array of centers of pixels of same shape as
@@ -95,6 +114,7 @@ def vertex_centroids(vertices):
     centroids = np.dstack([cx, cy])
 
     return centroids
+
 
 def check_vertices(vertices):
 
@@ -122,15 +142,20 @@ def check_vertices(vertices):
     dy23 = y3 - y2
     dy30 = y0 - y3
 
-    cp = np.array([dx01 * dy12 - dx12 * dy01,
-                   dx12 * dy23 - dx23 * dy12,
-                   dx23 * dy30 - dx30 * dy23,
-                   dx30 * dy01 - dx01 * dy30])
+    cp = np.array(
+        [
+            dx01 * dy12 - dx12 * dy01,
+            dx12 * dy23 - dx23 * dy12,
+            dx23 * dy30 - dx30 * dy23,
+            dx30 * dy01 - dx01 * dy30,
+        ]
+    )
     if np.any(cp <= 0):
         # return that we failed
         return False
     # success means we're good!
     return True
+
 
 class Source(object):
     """
@@ -167,8 +192,13 @@ class Source(object):
         # evaluate moments of fluxes image naievely in pixel coordinates
         return self.psf_evaluator(self.fluxes)
 
-    def evaluate_sex(self,params=["X_IMAGE", "Y_IMAGE", "FLUX_AUTO", "FLUX_ISO", "FLUX_ISOCOR", "FLAGS"],\
-            config={"DETECT_MINAREA":4, "PHOT_FLUXFRAC":"0.3, 0.5, 0.8"}, sexpath='/afs/slac/g/ki/software/local/bin/sex',**kwargs):
+    def evaluate_sex(
+        self,
+        params=["X_IMAGE", "Y_IMAGE", "FLUX_AUTO", "FLUX_ISO", "FLUX_ISOCOR", "FLAGS"],
+        config={"DETECT_MINAREA": 4, "PHOT_FLUXFRAC": "0.3, 0.5, 0.8"},
+        sexpath="/afs/slac/g/ki/software/local/bin/sex",
+        **kwargs
+    ):
         """
         Run sextractor on a numpy array (or weak_sauce source) to do photometry.
         Results returned in an astropy table.
@@ -179,26 +209,29 @@ class Source(object):
 
         """
         import sewpy, os
-        sew = sewpy.SEW(params=params,config=config,sexpath=sexpath,**kwargs)
+
+        sew = sewpy.SEW(params=params, config=config, sexpath=sexpath, **kwargs)
         from astropy.io import fits
+
         hdu = fits.PrimaryHDU(self.fluxes)
         hdulist = fits.HDUList([hdu])
         try:
-            hdulist.writeto('/scratch/iamlame.fits',clobber=False)
+            hdulist.writeto("/scratch/iamlame.fits", clobber=False)
         except IOError:
-            print 'you already have a file called iamlame.fits in this directory--you should rename it and then seek help...'
+            print(
+                "you already have a file called iamlame.fits in this directory--you should rename it and then seek help..."
+            )
             raise
-        out = sew('/scratch/iamlame.fits')
-        os.remove('/scratch/iamlame.fits')
-        return out["table"] # this is an astropy table.
+        out = sew("/scratch/iamlame.fits")
+        os.remove("/scratch/iamlame.fits")
+        return out["table"]  # this is an astropy table.
 
-    def plot(self, ZZ, XX=None, YY=None, fig=None, ax=None,
-             pcolormesh_kwargs_in={}):
+    def plot(self, ZZ, XX=None, YY=None, fig=None, ax=None, pcolormesh_kwargs_in={}):
 
-        pcolormesh_kwargs = {'linewidths': 0, 'edgecolors': 'k'}
+        pcolormesh_kwargs = {"linewidths": 0, "edgecolors": "k"}
         # if we have a small number of points, put the edges back in
         if np.sqrt(np.prod(np.shape(ZZ))) < 30:
-            pcolormesh_kwargs['linewidths'] = 2
+            pcolormesh_kwargs["linewidths"] = 2
         pcolormesh_kwargs.update(pcolormesh_kwargs_in)
         if type(fig) == type(None):
             fig, ax = plt.subplots()
@@ -217,18 +250,21 @@ class Source(object):
             vmax = np.median(ZZ) + 2
             cmap.set_under(alpha=0)
         elif midpoint <= 0 or midpoint >= 1:
-            cmap = plt.cm.RdBu_r#plt.cm.Reds
+            cmap = plt.cm.RdBu_r  # plt.cm.Reds
         else:
             cmap = shiftedColorMap(plt.cm.RdBu_r, midpoint=midpoint)
 
         if type(XX) == type(None):
             # make an XX and YY grid
             num_x, num_y = ZZ.shape
-            XX, YY = np.meshgrid(np.linspace(0, num_x, num_x + 1, endpoint=True),
-                                 np.linspace(0, num_y, num_y + 1, endpoint=True),
-                                 indexing='ij')
-        IM = ax.pcolormesh(XX, YY, ZZ, cmap=cmap, vmin=vmin, vmax=vmax,
-                           **pcolormesh_kwargs)
+            XX, YY = np.meshgrid(
+                np.linspace(0, num_x, num_x + 1, endpoint=True),
+                np.linspace(0, num_y, num_y + 1, endpoint=True),
+                indexing="ij",
+            )
+        IM = ax.pcolormesh(
+            XX, YY, ZZ, cmap=cmap, vmin=vmin, vmax=vmax, **pcolormesh_kwargs
+        )
         if not np.all(ZZ == np.median(ZZ)):
             # don't plot a colorbar if we don't have any values!
             fig.colorbar(IM, ax=ax)
@@ -243,7 +279,9 @@ class Source(object):
         XX = self.vertices[:, :, 0]
         YY = self.vertices[:, :, 1]
         ZZ = self.fluxes
-        fig, ax = self.plot(ZZ, XX, YY, fig=fig, ax=ax, pcolormesh_kwargs_in=pcolormesh_kwargs_in)
+        fig, ax = self.plot(
+            ZZ, XX, YY, fig=fig, ax=ax, pcolormesh_kwargs_in=pcolormesh_kwargs_in
+        )
         return fig, ax
 
     def plot_pixel_grid(self, fig=None, ax=None):
@@ -253,7 +291,7 @@ class Source(object):
         return fig, ax
 
     def plot_naieve_grid(self, fig=None, ax=None):
-        print('Warning! plot_naieve_grid deprecated! Use plot_pixel_grid!')
+        print("Warning! plot_naieve_grid deprecated! Use plot_pixel_grid!")
         return self.plot_pixel_grid(fig=fig, ax=ax)
 
     def plot_vertices(self, fig=None, ax=None):
@@ -261,10 +299,12 @@ class Source(object):
         XX = self.vertices[:, :, 0]
         YY = self.vertices[:, :, 1]
         ZZ = np.zeros(np.array(XX.shape) - 1)
-        pcolormesh_kwargs_in = {'linewidths': 2}
-        fig, ax = self.plot(ZZ, XX, YY, fig=fig, ax=ax,
-                            pcolormesh_kwargs_in=pcolormesh_kwargs_in)
+        pcolormesh_kwargs_in = {"linewidths": 2}
+        fig, ax = self.plot(
+            ZZ, XX, YY, fig=fig, ax=ax, pcolormesh_kwargs_in=pcolormesh_kwargs_in
+        )
         return fig, ax
+
 
 """
 # example source with concave vertex

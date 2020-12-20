@@ -16,16 +16,19 @@ import numpy as np
 from weak_sauce.movers import UniformIlluminationMover
 from weak_sauce.grid import MoveableGrid
 
+
 class FlatFitter(MoveableGrid):
-    def __init__(self, source, true_fluxes, luminosity=1, step_size=1e-4,
-                 **kwargs):
-        mover = FlatMover(true_fluxes=true_fluxes, luminosity=luminosity,
-                          step_size=step_size, **kwargs)
+    def __init__(self, source, true_fluxes, luminosity=1, step_size=1e-4, **kwargs):
+        mover = FlatMover(
+            true_fluxes=true_fluxes,
+            luminosity=luminosity,
+            step_size=step_size,
+            **kwargs
+        )
         super(FlatFitter, self).__init__(source, mover, **kwargs)
 
     def lnlike(self):
         return self.mover.lnlike(self.source.vertices, self.source.fluxes)
-
 
 
 class FlatMover(UniformIlluminationMover):
@@ -33,6 +36,7 @@ class FlatMover(UniformIlluminationMover):
     This Mover takes true_fluxes and uses them to tell the source how to move.
     move_fluxes method based on UniformIlluminationMover
     """
+
     def __init__(self, true_fluxes, luminosity=1, step_size=1e-4, lamda=0, **kwargs):
         super(FlatMover, self).__init__(luminosity=luminosity, **kwargs)
         self.true_fluxes = true_fluxes
@@ -43,8 +47,8 @@ class FlatMover(UniformIlluminationMover):
 
     def lnlike(self, vertices, fluxes):
         base = -0.5 * np.sum(np.square(fluxes - self.true_fluxes))
-        x = vertices[:, :, 0]
-        y = vertices[:, :, 1]
+        # x = vertices[:, :, 0]
+        # y = vertices[:, :, 1]
         # TODO: this could be instead self.x_orig instead of mean(x) or whatever...
         # reg = -0.5 * self.lamda * np.sum(np.square(x - np.mean(x)) +
         #                                  np.square(y - np.mean(y)))
@@ -65,14 +69,14 @@ class FlatMover(UniformIlluminationMover):
 
         # each displacement
         dA_ij__dx_ij = (y[:-1, 1:] - y[1:, :-1]) * 0.5
-        dA_ij__dx_ip1jp1 = - (y[:-1, 1:] - y[1:, :-1]) * 0.5
-        dA_ij__dx_ijp1 = - (y[:-1, :-1] - y[1:, 1:]) * 0.5
+        dA_ij__dx_ip1jp1 = -(y[:-1, 1:] - y[1:, :-1]) * 0.5
+        dA_ij__dx_ijp1 = -(y[:-1, :-1] - y[1:, 1:]) * 0.5
         dA_ij__dx_ip1j = (y[:-1, :-1] - y[1:, 1:]) * 0.5
 
-        dA_ij__dy_ij = - (x[:-1, 1:] - x[1:, :-1]) * 0.5
+        dA_ij__dy_ij = -(x[:-1, 1:] - x[1:, :-1]) * 0.5
         dA_ij__dy_ip1jp1 = (x[:-1, 1:] - x[1:, :-1]) * 0.5
         dA_ij__dy_ijp1 = (x[:-1, :-1] - x[1:, 1:]) * 0.5
-        dA_ij__dy_ip1j = - (x[:-1, :-1] - x[1:, 1:]) * 0.5
+        dA_ij__dy_ip1j = -(x[:-1, :-1] - x[1:, 1:]) * 0.5
 
         # now combine these so we can get in terms of dx_ij only
         """
@@ -116,11 +120,9 @@ class FlatMover(UniformIlluminationMover):
         # dLdluminosity = np.sum((self.true_fluxes - luminosity * np.abs(A)) *
         #                        np.abs(A)) / np.sum(self.true_fluxes)
 
-
         return dLdvertices
 
-    def move_vertices(self, vertices, fluxes, step_size=None,
-                      **kwargs):
+    def move_vertices(self, vertices, fluxes, step_size=None, **kwargs):
 
         if type(step_size) == type(None):
             step_size = self.step_size
@@ -130,7 +132,7 @@ class FlatMover(UniformIlluminationMover):
         dvertices = step_size * dLdvertices
 
         # TODO: This also doesn't work.
-        #self.luminosity = self.luminosity + step_size * self.dLdluminosity
+        # self.luminosity = self.luminosity + step_size * self.dLdluminosity
 
         # enforce that two edges (say the X edges) cannot move
         # enforce by translation and squish and compensation in luminosity

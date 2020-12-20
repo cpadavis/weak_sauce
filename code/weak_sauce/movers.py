@@ -9,6 +9,7 @@ import numpy as np
 
 from weak_sauce.r2d import deposit, skim
 
+
 class Mover(object):
     """
     Class shell for movers. Currently super super simple. Just needs to have
@@ -16,7 +17,7 @@ class Mover(object):
     """
 
     def __init__(self, **kwargs):
-        #print('M', kwargs)
+        # print('M', kwargs)
         pass
 
     def move_vertices(self, vertices, fluxes, **kwargs):
@@ -29,14 +30,14 @@ class Mover(object):
 
     def move(self, source, **kwargs):
         # step order is to move vertices, then move fluxes
-        source.vertices += self.move_vertices(source.vertices, source.fluxes,
-                                              **kwargs)
+        source.vertices += self.move_vertices(source.vertices, source.fluxes, **kwargs)
         source.update_centroids()
-        source.fluxes += self.move_fluxes(source.vertices, source.fluxes,
-                                          **kwargs)
+        source.fluxes += self.move_fluxes(source.vertices, source.fluxes, **kwargs)
 
     def merge(self, other):
-        print('Warning! You are automagically adding two movers together! This might be awesome, but it might also be catastrophic!')
+        print(
+            "Warning! You are automagically adding two movers together! This might be awesome, but it might also be catastrophic!"
+        )
 
         # so I didn't think this would work. If you just put in the methods,
         # you get a recursion error
@@ -44,10 +45,12 @@ class Mover(object):
         other_move_vertices = other.move_vertices
         self_move_fluxes = self.move_fluxes
         other_move_fluxes = other.move_fluxes
+
         def merged_vertices(vertices, fluxes, **kwargs):
             dvertices_self = self_move_vertices(vertices, fluxes, **kwargs)
             dvertices_other = other_move_vertices(vertices, fluxes, **kwargs)
             return dvertices_self + dvertices_other
+
         def merged_fluxes(vertices, fluxes, **kwargs):
             dfluxes_self = self_move_fluxes(vertices, fluxes, **kwargs)
             dfluxes_other = other_move_fluxes(vertices, fluxes, **kwargs)
@@ -63,12 +66,14 @@ class Mover(object):
         self.merge(other)
         return self
 
+
 class StationaryMover(Mover):
     """
     Don't move anything!
     """
+
     def __init__(self, **kwargs):
-        #print('SM', kwargs)
+        # print('SM', kwargs)
         super(StationaryMover, self).__init__(**kwargs)
 
     def move_vertices(self, vertices, fluxes, **kwargs):
@@ -77,10 +82,12 @@ class StationaryMover(Mover):
     def move_fluxes(self, vertices, fluxes, **kwargs):
         return 0
 
+
 class FixedIlluminationMover(StationaryMover):
     """
     Deposit grid onto funny vertices.
     """
+
     def __init__(self, stationary_source, **kwargs):
         super(FixedIlluminationMover, self).__init__(**kwargs)
         self.stationary_source = stationary_source
@@ -116,9 +123,8 @@ class FixedIlluminationMover(StationaryMover):
         ymax_all = int(y.max())
         ymin_all = int(y.min())
         dfluxes = np.zeros(self.fluxes.shape)
-        dfluxes[xmin_all:xmax_all+1, ymin_all:ymax_all+1] = dfluxes_partial
+        dfluxes[xmin_all : xmax_all + 1, ymin_all : ymax_all + 1] = dfluxes_partial
         return dfluxes
-
 
 
 # TODO: Add FixedIlluminationMover method for r2d.skim as well!
@@ -135,12 +141,14 @@ class FixedIlluminationMover(StationaryMover):
 # ymin_all = int(y.min())
 # stationary_source.fluxes[xmin_all:xmax_all+1, ymin_all:ymax_all+1] = dfluxes
 
+
 class UniformIlluminationMover(StationaryMover):
     """
     Basically get the area of each vertex
     """
+
     def __init__(self, luminosity=1, **kwargs):
-        #print('UIM', kwargs)
+        # print('UIM', kwargs)
         super(UniformIlluminationMover, self).__init__(**kwargs)
         self.luminosity = luminosity  # counts per area
 
@@ -153,10 +161,10 @@ class UniformIlluminationMover(StationaryMover):
         x = vertices[:, :, 0]
         y = vertices[:, :, 1]
 
-        A = ((x[:-1, :-1] - x[1:, 1:]) *
-             (y[:-1, 1:] -  y[1:, :-1]) -
-             (x[:-1, 1:] -  x[1:, :-1]) *
-             (y[:-1, :-1] - y[1:, 1:])) * 0.5
+        A = (
+            (x[:-1, :-1] - x[1:, 1:]) * (y[:-1, 1:] - y[1:, :-1])
+            - (x[:-1, 1:] - x[1:, :-1]) * (y[:-1, :-1] - y[1:, 1:])
+        ) * 0.5
 
         return A
 
@@ -166,10 +174,12 @@ class UniformIlluminationMover(StationaryMover):
         dfluxes = self.luminosity * np.abs(self.area(vertices))
         return dfluxes
 
+
 class SimpleVerticesMover(StationaryMover):
     """
     Move every vertex by some uniform amount
     """
+
     def __init__(self, mu_x=0, mu_y=0, **kwargs):
         # print('SVM', kwargs)
         super(SimpleVerticesMover, self).__init__(**kwargs)
@@ -185,33 +195,40 @@ class GaussianVerticesMover(StationaryMover):
     Given a covariance matrix and means, move vertices by sampling gaussian.
     """
 
-    def __init__(self, mu_x=0, mu_y=0, sigma_xx=1, sigma_yy=1, sigma_xy=0,
-                 **kwargs):
+    def __init__(self, mu_x=0, mu_y=0, sigma_xx=1, sigma_yy=1, sigma_xy=0, **kwargs):
         # print('GVM', kwargs)
         super(GaussianVerticesMover, self).__init__(**kwargs)
         self.mean = np.array([mu_x, mu_y])
-        self.cov = np.array([[sigma_xx, sigma_xy],
-                             [sigma_xy, sigma_yy]])
+        self.cov = np.array([[sigma_xx, sigma_xy], [sigma_xy, sigma_yy]])
         # TODO: add check that cov is positive-semidefinite
 
     def move_vertices(self, vertices, fluxes, **kwargs):
         # realize perturbations from gaussian
-        dvertices = np.random.multivariate_normal(self.mean, self.cov,
-                                                  size=vertices.shape[:2])
+        dvertices = np.random.multivariate_normal(
+            self.mean, self.cov, size=vertices.shape[:2]
+        )
         return dvertices
+
 
 class UniformGaussianMover(GaussianVerticesMover, UniformIlluminationMover):
     """
     multiple inheritence. This class perturbs the vertices and then deposits
     flux assuming uniform illumination
     """
-    def __init__(self, mu_x=0, mu_y=0, sigma_xx=1, sigma_yy=1, sigma_xy=0,
-                 luminosity=1, **kwargs):
-        # print('UGM', kwargs)
-        super(UniformGaussianMover, self).__init__(mu_x=mu_x, mu_y=mu_y,
-              sigma_xx=sigma_xx, sigma_yy=sigma_yy, sigma_xy=sigma_xy,
-              luminosity=luminosity, **kwargs)
 
+    def __init__(
+        self, mu_x=0, mu_y=0, sigma_xx=1, sigma_yy=1, sigma_xy=0, luminosity=1, **kwargs
+    ):
+        # print('UGM', kwargs)
+        super(UniformGaussianMover, self).__init__(
+            mu_x=mu_x,
+            mu_y=mu_y,
+            sigma_xx=sigma_xx,
+            sigma_yy=sigma_yy,
+            sigma_xy=sigma_xy,
+            luminosity=luminosity,
+            **kwargs
+        )
 
 
 class TreeringVerticesMover(StationaryMover):
@@ -219,8 +236,9 @@ class TreeringVerticesMover(StationaryMover):
     Give a center, wavelength, amplitude, and phase.
     """
 
-    def __init__(self, center=np.array([0,0]), wavelength=10,
-                 amplitude=1, phase=0, **kwargs):
+    def __init__(
+        self, center=np.array([0, 0]), wavelength=10, amplitude=1, phase=0, **kwargs
+    ):
         # print('TVM', kwargs)
         super(TreeringVerticesMover, self).__init__(**kwargs)
         self.center = center
@@ -231,26 +249,27 @@ class TreeringVerticesMover(StationaryMover):
     def move_vertices(self, vertices, fluxes, **kwargs):
         # convert vertices to radial coordinates about the center
         r = np.sqrt(np.sum(np.square(vertices - self.center), axis=2))
-        theta = np.arctan2(vertices[:, :, 1] - self.center[1],
-                           vertices[:, :, 0] - self.center[0])
+        theta = np.arctan2(
+            vertices[:, :, 1] - self.center[1], vertices[:, :, 0] - self.center[0]
+        )
 
         # displace along radius
-        dr = self.amplitude * np.sin(2 * np.pi * (r / self.wavelength +
-                                                  self.phase))
+        dr = self.amplitude * np.sin(2 * np.pi * (r / self.wavelength + self.phase))
 
-        dvertices = np.dstack((dr * np.cos(theta),
-                               dr * np.sin(theta)))
+        dvertices = np.dstack((dr * np.cos(theta), dr * np.sin(theta)))
         return dvertices
+
 
 class UniformTreeringMover(TreeringVerticesMover, UniformIlluminationMover):
     """
     multiple inheritence
     """
+
     def __init__(self, **kwargs):
         super(UniformTreeringMover, self).__init__(**kwargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # show off treeringmover and plot it
 
     # make a gaussianmover, recover the stats doing something liek this:
